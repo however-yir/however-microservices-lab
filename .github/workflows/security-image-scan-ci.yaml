@@ -1,0 +1,27 @@
+name: "Container Image Security Scan"
+
+on:
+  pull_request:
+    paths:
+      - "src/**/Dockerfile"
+      - ".github/workflows/security-image-scan-ci.yaml"
+  push:
+    branches: ["main"]
+    paths:
+      - "src/**/Dockerfile"
+      - ".github/workflows/security-image-scan-ci.yaml"
+
+jobs:
+  trivy-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+          exit-code: "0"

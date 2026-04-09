@@ -1,0 +1,50 @@
+{
+  extends: [
+    'github>GoogleCloudPlatform/kubernetes-engine-samples//.github/renovate-configs/dee-platform-ops.json5',
+    'schedule:earlyMondays',
+  ],
+  'pip-compile': {
+    enabled: true,
+    managerFilePatterns: [
+      '/(^|/)requirements\\.txt$/',
+    ],
+  },
+  pip_requirements: {
+    enabled: false,
+  },
+  npm: {
+    enabled: true,
+  },
+  gradle: {
+    enabled: true,
+  },
+  constraints: {
+    python: '~=3.11.0',
+  },
+  packageRules: [
+    {
+      matchManagers: ['npm', 'gradle', 'pip-compile'],
+      groupName: 'weekly-dependency-rollup',
+      schedule: ['before 5am on monday'],
+    },
+    {
+      matchUpdateTypes: ['major'],
+      automerge: false,
+      labels: ['dependency-major'],
+    },
+    {
+      matchUpdateTypes: ['minor', 'patch'],
+      automerge: true,
+      labels: ['dependency-safe'],
+    },
+  ],
+  kubernetes: {
+    managerFilePatterns: [
+      '/\\.yaml$/',
+    ],
+    ignorePaths: [
+      'release/**',
+      'kustomize/base/**',
+    ],
+  },
+}

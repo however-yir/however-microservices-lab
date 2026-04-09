@@ -1,0 +1,26 @@
+[
+  {
+    "id": "2ZYFJ3GM2N",
+    "name": "Hairdryer",
+    "description": "Compact hairdryer with matte finish for modern bathroom setups.",
+    "categories": ["hair", "bathroom", "appliance"]
+  },
+  {
+    "id": "6E92ZMYYFZ",
+    "name": "Mug",
+    "description": "Ceramic mug with minimalist shape and neutral color palette.",
+    "categories": ["kitchen", "decor", "tableware"]
+  },
+  {
+    "id": "L9ECAV7KIM",
+    "name": "Loafers",
+    "description": "Classic loafers with clean silhouette, suitable for capsule wardrobe styling.",
+    "categories": ["footwear", "fashion", "clothing"]
+  },
+  {
+    "id": "9SIQT8TOJO",
+    "name": "Bamboo Glass Jar",
+    "description": "Natural bamboo lid jar, ideal for warm Scandinavian home aesthetics.",
+    "categories": ["kitchen", "decor", "storage"]
+  }
+]

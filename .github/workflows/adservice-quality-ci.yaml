@@ -1,0 +1,27 @@
+name: "AdService Java Quality"
+
+on:
+  pull_request:
+    paths:
+      - "src/adservice/**"
+      - ".github/workflows/adservice-quality-ci.yaml"
+  push:
+    branches: ["main"]
+    paths:
+      - "src/adservice/**"
+      - ".github/workflows/adservice-quality-ci.yaml"
+
+jobs:
+  adservice-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "21"
+      - name: Gradle test + static analysis
+        working-directory: src/adservice
+        run: |
+          chmod +x gradlew
+          ./gradlew test pmdMain

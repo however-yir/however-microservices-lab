@@ -1,0 +1,28 @@
+name: "Changelog Automation"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+jobs:
+  changelog:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Update changelog
+        run: ./scripts/changelog/update_changelog.sh
+      - name: Commit changelog
+        run: |
+          if [[ -n "$(git status --porcelain CHANGELOG.md)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add CHANGELOG.md
+            git commit -m "docs: auto update changelog [skip ci]"
+            git push
+          else
+            echo "No changelog update needed."
+          fi

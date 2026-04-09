@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="200" viewBox="0 0 760 200" fill="none">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0EA5E9"/>
+      <stop offset="100%" stop-color="#22C55E"/>
+    </linearGradient>
+  </defs>
+  <rect width="760" height="200" rx="28" fill="#0B1220"/>
+  <g transform="translate(36 32)">
+    <rect x="0" y="0" width="136" height="136" rx="24" fill="url(#g1)"/>
+    <path d="M28 69C40 52 55 42 74 42C94 42 106 53 114 69C103 82 90 92 74 92C57 92 43 82 28 69Z" fill="#0B1220"/>
+    <circle cx="74" cy="69" r="11" fill="#E2E8F0"/>
+  </g>
+  <text x="198" y="88" fill="#E2E8F0" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="44" font-weight="700">however</text>
+  <text x="198" y="132" fill="#94A3B8" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="24">microservices engineering edition</text>
+</svg>

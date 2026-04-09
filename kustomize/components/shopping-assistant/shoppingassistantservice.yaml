@@ -1,0 +1,176 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shoppingassistantservice
+  labels:
+    app: shoppingassistantservice
+spec:
+  selector:
+    matchLabels:
+      app: shoppingassistantservice
+  template:
+    metadata:
+      labels:
+        app: shoppingassistantservice
+    spec:
+      serviceAccountName: shoppingassistantservice
+      terminationGracePeriodSeconds: 5
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: server
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+        image: shoppingassistantservice
+        ports:
+        - name: http
+          containerPort: 8080
+        env:
+        - name: MODEL_PROVIDER
+          value: "gemini"
+        - name: GEMINI_VISION_MODEL
+          value: "gemini-1.5-flash"
+        - name: GEMINI_TEXT_MODEL
+          value: "gemini-1.5-flash"
+        - name: GOOGLE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: shoppingassistantservice-secrets
+              key: google_api_key
+        - name: OLLAMA_BASE_URL
+          value: "http://ollama.ollama.svc.cluster.local:11434"
+        - name: OLLAMA_ALLOWED_HOSTS
+          value: "ollama,ollama.ollama.svc.cluster.local,localhost,127.0.0.1"
+        - name: OLLAMA_MODEL
+          value: "qwen2.5:7b"
+        - name: OLLAMA_TIMEOUT_SECONDS
+          value: "60"
+        - name: MAX_RETRIES
+          value: "2"
+        - name: RETRY_BACKOFF_SECONDS
+          value: "0.4"
+        - name: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+          value: "4"
+        - name: CIRCUIT_BREAKER_RESET_SECONDS
+          value: "30"
+        - name: RATE_LIMIT_WINDOW_SECONDS
+          value: "60"
+        - name: RATE_LIMIT_MAX_REQUESTS
+          value: "120"
+        - name: ENABLE_TRACING
+          value: "1"
+        - name: OTEL_SERVICE_NAME
+          value: "shoppingassistantservice"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-collector:4317"
+        - name: VECTORSTORE_BACKEND
+          value: "alloydb"
+        - name: VECTOR_TOP_K
+          value: "6"
+        - name: PRODUCT_CATALOG_JSON
+          value: "/shoppingassistantservice/products.local.json"
+        - name: PROMPT_TEMPLATE_DIR
+          value: "/shoppingassistantservice/prompts/v1"
+        - name: ALLOYDB_CLUSTER_NAME
+          value: ALLOYDB_CLUSTER_NAME_VAL
+        - name: ALLOYDB_INSTANCE_NAME
+          value: ALLOYDB_INSTANCE_NAME_VAL
+        - name: ALLOYDB_DATABASE_NAME
+          value: ALLOYDB_DATABASE_NAME_VAL
+        - name: ALLOYDB_TABLE_NAME
+          value: ALLOYDB_TABLE_NAME_VAL
+        - name: ALLOYDB_USER
+          value: "postgres"
+        - name: ALLOYDB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: shoppingassistantservice-secrets
+              key: alloydb_password
+        - name: ALLOYDB_SECRET_NAME
+          value: ALLOYDB_SECRET_NAME_VAL
+        - name: PROJECT_ID
+          value: PROJECT_ID_VAL
+        - name: REGION
+          value: REGION_VAL
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /livez
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 2
+          failureThreshold: 6
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          periodSeconds: 5
+          failureThreshold: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shoppingassistantservice
+  labels:
+    app: shoppingassistantservice
+spec:
+  type: ClusterIP
+  selector:
+    app: shoppingassistantservice
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: shoppingassistantservice
+  annotations:
+    iam.gke.io/gcp-service-account: ALLOYDB_USER_GSA_ID
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: shoppingassistantservice-secrets
+type: Opaque
+stringData:
+  google_api_key: "GOOGLE_API_KEY_VAL"
+  alloydb_password: ""

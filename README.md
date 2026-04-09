@@ -1,4 +1,4 @@
-# however-microservices-lab
+# however-microservices-lab - 微服务架构实践实验室 | Microservices Architecture Lab
 
 <p align="center">
   <img src="docs/img/however-logo.svg" width="360" alt="however logo" />

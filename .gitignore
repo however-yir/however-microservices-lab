@@ -26,3 +26,11 @@ obj/
 pkg/
 release/wi-kubernetes-manifests.yaml
 vendor/
+
+# --- Baseline Ignore Rules ---
+__pycache__/
+*.py[cod]
+.env
+.env.*
+dist/
+target/

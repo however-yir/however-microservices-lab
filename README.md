@@ -275,4 +275,16 @@ make check-all
 ### Repo Hygiene
 
 - Keep generated files (`dist/`, `build/`, `__pycache__/`, `.idea/`, `.DS_Store`) out of version control.
+## Engineering Quality
 
+This repository includes a contract-based quality baseline to keep essential engineering standards stable over time.
+
+- Quality plan: [docs/ENGINEERING_QUALITY.md](docs/ENGINEERING_QUALITY.md)
+- Contract tests: [tests/repo_contract_test.sh](tests/repo_contract_test.sh)
+- Contract CI workflow: [.github/workflows/repo-contract-ci.yml](.github/workflows/repo-contract-ci.yml)
+
+Run local contract checks:
+
+```bash
+bash tests/repo_contract_test.sh
+```

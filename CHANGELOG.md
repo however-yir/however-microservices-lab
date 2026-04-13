@@ -1,3 +1,25 @@
+## 2026-04-13
+- 0d130fa docs(quality): add engineering quality section to README
+- b4517a9 docs(quality): add engineering quality plan
+- 17531de ci(quality): add repo contract workflow
+- 8596988 test(quality): add repository contract test
+- a695c80 docs: auto update changelog [skip ci]
+- 36ddf57 chore(repo-health): add tests scaffold
+- 17e1ec1 chore(repo-health): add CodeQL workflow
+- 857ad11 chore(repo-health): add dependabot config
+- 5d1db41 chore(repo-health): add contributing guide
+- 66e245f docs: auto update changelog [skip ci]
+- b9cab41 ci: grant changelog workflow contents write permission
+- cddadaa chore(activity): fill global empty day [GD-20260222]
+- b05cf84 chore(activity): fill cadence gap [GF-20260326-1]
+- 6b042a0 chore(activity): fill cadence gap [GF-20260323-1]
+- a185781 chore(activity): fill cadence gap [GF-20260320-1]
+- e3ad856 chore(activity): fill cadence gap [GF-20260316-1]
+- 8ab2b30 chore(activity): fill cadence gap [GF-20260312-1]
+- ef2ed38 chore(activity): fill cadence gap [GF-20260308-1]
+- 8f40e9a chore(activity): fill cadence gap [GF-20260305-1]
+- 13b7aa6 chore(activity): fill cadence gap [GF-20260303-1]
+
 ## 2026-04-12
 - 36ddf57 chore(repo-health): add tests scaffold
 - 17e1ec1 chore(repo-health): add CodeQL workflow

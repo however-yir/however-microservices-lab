@@ -1,23 +1,18 @@
 # Engineering Quality Plan
 
-This document defines the quality baseline and delivery policy for 
-
-
-default branch in 
-auto-improving workflows.
+This document defines the quality baseline and delivery policy for `however-yir/however-microservices-lab`.
 
 ## 1. Scope
 
-- Repository: 
-auto-tracked via GitHub Actions
-- Primary language: Python
-- Baseline release tag: 
+- Repository: `however-yir/however-microservices-lab`
+- Primary language: `Python`
+- Baseline release tag: `health-baseline-2026-04-12`
 
 ## 2. Quality Gates
 
 - Security scans: CodeQL + secret scanning workflows
 - Dependency hygiene: Dependabot for GitHub Actions and detected ecosystems
-- Contract checks:  in CI
+- Contract checks: `tests/repo_contract_test.sh` in CI
 - Build and test checks: existing project-specific workflows remain the source of truth
 
 ## 3. Test Strategy

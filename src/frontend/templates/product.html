@@ -22,65 +22,65 @@
   </span>
 </div>
 
-<main role="main">
-  <div class="h-product container">
-    <div class="row">
-      <div class="col-md-6">
-        <img class="product-image" alt="" src="{{ $.baseUrl }}{{$.product.Item.Picture}}" />
+<main role="main" class="product-page">
+  <section class="container product-shell">
+    <div class="row product-panel">
+      <div class="col-lg-6 product-media-col">
+        <div class="product-media-frame">
+          <img class="product-image" alt="{{ $.product.Item.Name }}" src="{{ $.baseUrl }}{{$.product.Item.Picture}}" />
+        </div>
       </div>
-      <div class="product-info col-md-5">
-        <div class="product-wrapper">
 
-          <h2>{{ $.product.Item.Name }}</h2>
+      <div class="col-lg-6 product-info product-copy-col">
+        <div class="product-wrapper">
+          <p class="product-kicker">Product Detail</p>
+          <h1>{{ $.product.Item.Name }}</h1>
           <p class="product-price">{{ renderMoney $.product.Price }}</p>
-          <p>{{ $.product.Item.Description }}</p>
+          <p class="product-description">{{ $.product.Item.Description }}</p>
 
           {{ if $.packagingInfo }}
           <div class="product-packaging">
-            <h3>Packaging</h3>
-            <span>
-              Weight: {{ if $.packagingInfo.Weight }}{{ $.packagingInfo.Weight }}lb{{ else }}n/a{{ end }}
-            </span>
-            <span>
-              Width: {{ if $.packagingInfo.Width }}{{ $.packagingInfo.Width }}cm{{ else }}n/a{{ end }}
-            </span>
-            <span>
-              Height: {{ if $.packagingInfo.Height }}{{ $.packagingInfo.Height }}cm{{ else }}n/a{{ end }}
-            </span>
-            <span>
-              Depth: {{ if $.packagingInfo.Depth }}{{ $.packagingInfo.Depth }}cm{{ else }}n/a{{ end }}
-            </span>
+            <h2>Packaging</h2>
+            <div class="product-packaging-grid">
+              <span><strong>Weight</strong>{{ if $.packagingInfo.Weight }}{{ $.packagingInfo.Weight }}lb{{ else }}n/a{{ end }}</span>
+              <span><strong>Width</strong>{{ if $.packagingInfo.Width }}{{ $.packagingInfo.Width }}cm{{ else }}n/a{{ end }}</span>
+              <span><strong>Height</strong>{{ if $.packagingInfo.Height }}{{ $.packagingInfo.Height }}cm{{ else }}n/a{{ end }}</span>
+              <span><strong>Depth</strong>{{ if $.packagingInfo.Depth }}{{ $.packagingInfo.Depth }}cm{{ else }}n/a{{ end }}</span>
+            </div>
           </div>
           {{ end }}
 
-          <form method="POST" action="{{ $.baseUrl }}/cart">
+          <form method="POST" action="{{ $.baseUrl }}/cart" class="product-buy-form">
             <input type="hidden" name="product_id" value="{{$.product.Item.Id}}" />
-            <div class="product-quantity-dropdown">
-              <select name="quantity" id="quantity">
-                <option>1</option>
-                <option>2</option>
-                <option>3</option>
-                <option>4</option>
-                <option>5</option>
-                <option>10</option>
-              </select>
-              <img src="{{ $.baseUrl }}/static/icons/Hipster_DownArrow.svg" alt="">
+            <label for="quantity">Quantity</label>
+            <div class="product-buy-controls">
+              <div class="product-quantity-dropdown">
+                <select name="quantity" id="quantity">
+                  <option>1</option>
+                  <option>2</option>
+                  <option>3</option>
+                  <option>4</option>
+                  <option>5</option>
+                  <option>10</option>
+                </select>
+                <img src="{{ $.baseUrl }}/static/icons/Hipster_DownArrow.svg" alt="">
+              </div>
+              <button type="submit" class="cymbal-button-primary">Add To Cart</button>
             </div>
-            <button type="submit" class="cymbal-button-primary">Add To Cart</button>
           </form>
         </div>
       </div>
     </div>
-  </div>
-  <div>
-    {{ if $.recommendations}}
-      {{ template "recommendations" $ }}
-    {{ end }}
-  </div>
-  <div class="ad">
-   {{ if $.ad }}{{ template "text_ad" $ }}{{ end }}
-  </div>
+  </section>
 
+  {{ if $.recommendations}}
+  {{ template "recommendations" $ }}
+  {{ end }}
+
+  <section class="ad ad-modern">
+    {{ if $.ad }}{{ template "text_ad" $ }}{{ end }}
+  </section>
 </main>
+
 {{ template "footer" . }}
 {{ end }}

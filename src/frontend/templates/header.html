@@ -34,6 +34,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Google+Symbols:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <link rel="stylesheet" type="text/css" href="{{ $.baseUrl }}/static/styles/styles.css">
     <link rel="stylesheet" type="text/css" href="{{ $.baseUrl }}/static/styles/cart.css">
@@ -46,33 +47,35 @@
     {{ end }}
 </head>
 
-<body>
-    <header>
+<body class="{{ if $.is_cymbal_brand }}brand-cymbal{{ else }}brand-hipster{{ end }}">
+    <header class="site-header">
         {{ if $.frontendMessage }}
-        <div class="navbar">
+        <div class="promo-bar">
             <div class="container d-flex justify-content-center">
-                <div class="h-free-shipping">{{ $.frontendMessage }}</div>
+                <div class="h-free-shipping promo-text">{{ $.frontendMessage }}</div>
             </div>
         </div>
         {{ end }}
-        <div class="navbar sub-navbar">
-            <div class="container d-flex justify-content-between">
-                <a href="{{ $.baseUrl }}/" class="navbar-brand d-flex align-items-center">
+
+        <div class="navbar sub-navbar site-nav">
+            <div class="container d-flex justify-content-between site-nav-inner">
+                <a href="{{ $.baseUrl }}/" class="navbar-brand d-flex align-items-center site-brand" aria-label="Go to home page">
                     {{ if $.is_cymbal_brand }}
-                    <img src="{{ $.baseUrl }}/static/icons/Cymbal_NavLogo.svg" alt="" class="top-left-logo-cymbal" />
+                    <img src="{{ $.baseUrl }}/static/icons/Cymbal_NavLogo.svg" alt="Cymbal Shops" class="top-left-logo-cymbal" />
                     {{ else }}
-                    <img src="{{ $.baseUrl }}/static/icons/Hipster_NavLogo.svg" alt="" class="top-left-logo" />
+                    <img src="{{ $.baseUrl }}/static/icons/Hipster_NavLogo.svg" alt="Online Boutique" class="top-left-logo" />
                     {{ end }}
                 </a>
-                <div class="controls">
 
+                <div class="controls site-controls">
                     {{ if $.show_currency }}
                     <div class="h-controls">
-                        <div class="h-control">
-                            <span class="icon currency-icon"> {{ renderCurrencyLogo $.user_currency}}</span>
+                        <div class="h-control currency-control">
+                            <span class="icon currency-icon">{{ renderCurrencyLogo $.user_currency}}</span>
                             <form method="POST" class="controls-form" action="{{ $.baseUrl }}/setCurrency" id="currency_form" >
-                                <select name="currency_code" onchange="document.getElementById('currency_form').submit();">
-                                        {{range $.currencies}}
+                                <label for="currency_code" class="sr-only">Currency</label>
+                                <select id="currency_code" name="currency_code" onchange="document.getElementById('currency_form').submit();">
+                                    {{range $.currencies}}
                                     <option value="{{.}}" {{if eq . $.user_currency}}selected="selected"{{end}}>{{.}}</option>
                                     {{end}}
                                 </select>
@@ -83,12 +86,12 @@
                     {{ end }}
 
                     {{ if $.assistant_enabled }}
-                    <a href="{{ $.baseUrl }}/assistant" class="cart-link">
-                      <img src="{{ $.baseUrl }}/static/icons/Hipster_WandIcon.svg" style="width: 22px; height: 22px;" alt="Assistant icon" class="logo" title="Assistant" />
+                    <a href="{{ $.baseUrl }}/assistant" class="cart-link nav-icon-link assistant-link" aria-label="Open shopping assistant">
+                      <img src="{{ $.baseUrl }}/static/icons/Hipster_WandIcon.svg" alt="Assistant icon" class="logo" title="Assistant" />
                     </a>
                     {{ end }}
 
-                    <a href="{{ $.baseUrl }}/cart" class="cart-link">
+                    <a href="{{ $.baseUrl }}/cart" class="cart-link nav-icon-link" aria-label="Open cart">
                         <img src="{{ $.baseUrl }}/static/icons/Hipster_CartIcon.svg" alt="Cart icon" class="logo" title="Cart" />
                         {{ if $.cart_size }}
                         <span class="cart-size-circle">{{$.cart_size}}</span>

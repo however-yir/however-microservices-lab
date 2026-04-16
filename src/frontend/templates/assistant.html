@@ -23,40 +23,55 @@
   </span>
 </div>
 
-<main role="main">
-  <div class="container">
-    <div class="row">
-      <div class="col-md-12">
-        <div id="chat-modal" class="chat-modal">
-          <div id="bot-messages" class="bot-messages">
-            <p class="bot-message">
-              <span class="bot-message-text">Hi, I'm the Cymbal Shops assistant. I can help you with your shopping experience.</span>
-            </p>
-            <p class="bot-message">
-              <span class="bot-message-text">What can I help you with?</span>
-            </p>
-          </div>
-          <div class="bot-input">
-            <input id="bot-input-text" type="text" style="margin-right: 30px;" class="bot-input-text" placeholder="Recommend me items...">
-            <input type="file" class="bot-input-file-button"  onchange="getBase64()">
-            <button id="bot-input-button" class="bot-input-button">Send</button>
-          </div>
-        </div>
+<main role="main" class="assistant-page">
+  <section class="assistant-shell container-fluid">
+    <div class="assistant-hero">
+      <p class="assistant-eyebrow">Cymbal AI Concierge</p>
+      <h1>Shop with context, not keywords.</h1>
+      <p class="assistant-subtitle">
+        Tell the assistant your vibe, budget, and use case. Upload a reference image to get highly relevant picks.
+      </p>
+      <div class="assistant-suggestions" aria-label="Prompt suggestions">
+        <button class="assistant-suggestion" type="button" data-suggestion="Recommend a minimalist desk setup under $120.">Minimalist desk under $120</button>
+        <button class="assistant-suggestion" type="button" data-suggestion="I need a gift box for a coffee lover.">Gift for a coffee lover</button>
+        <button class="assistant-suggestion" type="button" data-suggestion="Find cozy living room upgrades for a small apartment.">Cozy living room upgrades</button>
       </div>
     </div>
-  </div>
+
+    <div id="chat-modal" class="chat-modal" aria-live="polite">
+      <div id="bot-messages" class="bot-messages">
+        <p class="bot-message">
+          <span class="bot-message-text">Hi, I'm the Cymbal Shops assistant. I can help you with your shopping experience.</span>
+        </p>
+        <p class="bot-message">
+          <span class="bot-message-text">What can I help you with?</span>
+        </p>
+      </div>
+      <div class="bot-input" role="group" aria-label="Assistant input area">
+        <input id="bot-input-text" type="text" class="bot-input-text" placeholder="Ask for recommendations, categories, or bundles...">
+        <label for="bot-input-file" class="bot-input-file-label">
+          Attach image
+          <input id="bot-input-file" type="file" class="bot-input-file-button" accept="image/*">
+        </label>
+        <button id="bot-input-button" class="bot-input-button">Send</button>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script>
-  var image;
-  function getBase64 ()  {
-    var file = document.querySelector('input[type=file]')['files'][0];
-    var reader = new FileReader();
-    var baseString;
+  let image = "";
+
+  function getBase64(event) {
+    const file = event.target.files[0];
+    if (!file) {
+      image = "";
+      return;
+    }
+
+    const reader = new FileReader();
     reader.onloadend = function () {
-      baseString = reader.result;
-      console.log(baseString);
-      image = baseString;
+      image = reader.result;
     };
     reader.readAsDataURL(file);
   }
@@ -72,139 +87,158 @@
     return ids;
   }
 
-  const chatModal = document.getElementById("chat-modal");
   const botMessages = document.getElementById("bot-messages");
   const botbutton = document.getElementById("bot-input-button");
   const botinput = document.getElementById("bot-input-text");
+  const botFileInput = document.getElementById("bot-input-file");
+  const suggestionButtons = document.querySelectorAll(".assistant-suggestion");
 
   async function main() {
     botbutton.addEventListener("click", handleButtonClick);
+    botFileInput.addEventListener("change", getBase64);
 
     botinput.addEventListener("keypress", (event) => {
       if (event.key === "Enter") {
         botbutton.click();
       }
     });
+
+    suggestionButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        botinput.value = button.dataset.suggestion || "";
+        botinput.focus();
+      });
+    });
   }
 
   async function handleButtonClick() {
-    if(!botinput.value || !botinput.value.trim){
+    const message = botinput.value.trim();
+    if (!message) {
       return;
     }
 
-    // Construct and render user message
-    console.log("bot button clicked");
-    const message = botinput.value;
-    console.log("message: " + message);
     const usermessage = document.createElement("p");
     const userMessageSpan = document.createElement("span");
-    const imageDivElement = document.createElement("div");
-    imageDivElement.classList.add("user-image-div")
-    const imageElement = document.createElement("img");
-    imageElement.src = image;
-    imageElement.classList.add("user-image");
-    imageElement.onerror = function() { this.style.display = 'none'; };
-    userMessageSpan.innerText = message;
+    userMessageSpan.textContent = message;
     userMessageSpan.classList.add("user-message-text");
     usermessage.classList.add("user-message");
     usermessage.appendChild(userMessageSpan);
     botMessages.appendChild(usermessage);
-    imageDivElement.appendChild(imageElement);
-    botMessages.appendChild(imageDivElement);
+
+    if (image) {
+      const imageDivElement = document.createElement("div");
+      imageDivElement.classList.add("user-image-div");
+      const imageElement = document.createElement("img");
+      imageElement.src = image;
+      imageElement.classList.add("user-image");
+      imageElement.onerror = function () {
+        this.style.display = "none";
+      };
+      imageDivElement.appendChild(imageElement);
+      botMessages.appendChild(imageDivElement);
+    }
+
     botMessages.scrollTo(0, botMessages.scrollHeight);
     botinput.value = "";
 
-    // Disable send button and input field
     botbutton.disabled = true;
     botinput.disabled = true;
-    console.log("bot is typing");
 
-    // Construct and render placeholder bot message
     const botMessage = document.createElement("p");
     botMessage.classList.add("bot-message-loading");
     const botMessageSpan = document.createElement("span");
-    botMessageSpan.innerText = ""
+    botMessageSpan.textContent = "";
     botMessageSpan.classList.add("bot-message-text");
     botMessage.classList.add("bot-message");
     botMessage.appendChild(botMessageSpan);
     botMessages.appendChild(botMessage);
     botMessages.scrollTo(0, botMessages.scrollHeight);
 
-    // Request a response from the Shopping Assistant
-    const response = await fetch("{{ $.baseUrl }}/bot", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        message: message,
-        image: image
-      }),
-    });
-    const responseJson = await response.json();
-    console.log(responseJson);
+    try {
+      const response = await fetch("{{ $.baseUrl }}/bot", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: message,
+          image: image
+        })
+      });
 
-    // Fetch the product IDs from the response
-    const extractedIds = extractIdsFromString(responseJson.message);
-    console.log(extractedIds);
-
-    // Replace the placeholder bot message text with the real response
-    // Making sure to remove any lists or product IDs from that message
-    botMessageSpan.innerText = responseJson.message.replace(/\n+[-*\d][\S\s]*/g, "");
-    botMessage.classList.remove("bot-message-loading");
-
-    // If there are any product IDs...
-    if (extractedIds.length > 0) {
-      // Construct root products div
-      const botProductsDiv = document.createElement("div");
-      botProductsDiv.classList.add("bot-products");
-
-      // For each product...
-      for (const id of extractedIds) {
-        // Retrieve product metadata from the Product Catalog
-        const productResponse = await fetch("{{ $.baseUrl }}/product-meta/" + id, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        const product = await productResponse.json();
-
-        // Construct main product div
-        const botProductDiv = document.createElement("a");
-        botProductDiv.classList.add("bot-product");
-        botProductDiv.href = "{{ $.baseUrl }}/product/" + id;
-
-        // Construct product image
-        const botProductImg = document.createElement("img");
-        botProductImg.src = product["picture"];
-        botProductImg.classList.add("bot-product-img");
-        botProductImg.onerror = function() { this.style.display = 'none'; };
-        botProductDiv.appendChild(botProductImg);
-
-        // Construct product description div
-        const botProductDescription = document.createElement("div");
-        botProductDescription.classList.add("bot-product-description");
-        let productDescription = product["description"];
-        if (productDescription.length > 350) { // Shorten descriptions that are too long
-          productDescription = productDescription.substring(0, 330) + '...';
-        }
-        botProductDescription.innerHTML = "<b>" + product["name"] + "</b><br>" + productDescription;
-        botProductDiv.appendChild(botProductDescription);
-
-        // Append main product div into the root products div
-        botProductsDiv.appendChild(botProductDiv);
+      if (!response.ok) {
+        throw new Error("Assistant service unavailable");
       }
-      // Render products
-      botMessages.appendChild(botProductsDiv)
+
+      const responseJson = await response.json();
+      const extractedIds = extractIdsFromString(responseJson.message || "");
+
+      botMessageSpan.textContent = (responseJson.message || "").replace(/\n+[-*\d][\S\s]*/g, "");
+      botMessage.classList.remove("bot-message-loading");
+
+      if (extractedIds.length > 0) {
+        const botProductsDiv = document.createElement("div");
+        botProductsDiv.classList.add("bot-products");
+
+        for (const id of extractedIds) {
+          const productResponse = await fetch("{{ $.baseUrl }}/product-meta/" + id, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json"
+            }
+          });
+
+          if (!productResponse.ok) {
+            continue;
+          }
+
+          const product = await productResponse.json();
+          const botProductDiv = document.createElement("a");
+          botProductDiv.classList.add("bot-product");
+          botProductDiv.href = "{{ $.baseUrl }}/product/" + id;
+
+          const botProductImg = document.createElement("img");
+          botProductImg.src = product.picture;
+          botProductImg.classList.add("bot-product-img");
+          botProductImg.onerror = function () {
+            this.style.display = "none";
+          };
+          botProductDiv.appendChild(botProductImg);
+
+          const botProductDescription = document.createElement("div");
+          botProductDescription.classList.add("bot-product-description");
+
+          const productTitle = document.createElement("strong");
+          productTitle.textContent = product.name || "Recommended item";
+
+          const productDescriptionText = document.createElement("p");
+          let productDescription = product.description || "";
+          if (productDescription.length > 350) {
+            productDescription = productDescription.substring(0, 330) + "...";
+          }
+          productDescriptionText.textContent = productDescription;
+
+          botProductDescription.appendChild(productTitle);
+          botProductDescription.appendChild(productDescriptionText);
+          botProductDiv.appendChild(botProductDescription);
+
+          botProductsDiv.appendChild(botProductDiv);
+        }
+
+        botMessages.appendChild(botProductsDiv);
+      }
+    } catch (error) {
+      botMessageSpan.textContent = "I hit a temporary issue. Please try again in a moment.";
+      botMessage.classList.remove("bot-message-loading");
+      botMessage.classList.add("bot-message-error");
+    } finally {
+      botMessages.scrollTo(0, botMessages.scrollHeight);
+      botbutton.disabled = false;
+      botinput.disabled = false;
+      botinput.focus();
+      botFileInput.value = "";
+      image = "";
     }
-
-    botMessages.scrollTo(0, botMessages.scrollHeight);
-
-    // Re-enable button and input field
-    botbutton.disabled = false;
-    botinput.disabled = false;
-    botinput.focus();
   }
 
   main();

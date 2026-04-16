@@ -22,59 +22,53 @@
     {{$.platform_name}}
   </span>
 </div>
+
 <main role="main" class="home">
+  <section class="home-hero">
+    <div class="home-hero-media" aria-hidden="true"></div>
+    <div class="home-hero-overlay"></div>
+    <div class="container home-hero-content">
+      <p class="home-kicker">Cymbal Shops</p>
+      <h1>Design-first essentials for everyday living.</h1>
+      <p>
+        Discover curated pieces with clean silhouettes, honest materials, and pricing that fits real life.
+      </p>
+      <div class="home-hero-actions">
+        {{ if $.assistant_enabled }}
+        <a href="{{ $.baseUrl }}/assistant" class="cymbal-button-primary">Ask AI Concierge</a>
+        {{ end }}
+        <a href="#catalog" class="cymbal-button-secondary">Browse Hot Picks</a>
+      </div>
+    </div>
+  </section>
 
-  <!-- The image at the top of the home page, displayed on smaller screens. -->
-  <div class="home-mobile-hero-banner d-lg-none"></div>
+  <section id="catalog" class="home-catalog container-fluid">
+    <div class="row justify-content-center">
+      <div class="col-12 col-xl-11">
+        <div class="home-section-header">
+          <p class="home-section-kicker">Freshly Curated</p>
+          <h2>Hot Products</h2>
+        </div>
 
-  <div class="container-fluid">
-    <div class="row">
-
-      <!-- The image on the left of the home page, displayed on larger screens. -->
-      <!--<div class="col-4 d-none d-lg-block home-desktop-left-image"></div>-->
-      <!-- @TODO: removed temporarily. When uncommenting, also replace below div with this -->
-      <!--<div class="col-12 col-lg-8">-->
-
-      <div class="col-12 col-lg-12 px-10-percent">
-
-        <div class="row hot-products-row px-xl-6">
-
-          <div class="col-12">
-            <h3>Hot Products</h3>
-          </div>
-
+        <div class="row hot-products-row">
           {{ range $.products }}
-          <div class="col-md-4 hot-product-card">
-            <a href="{{ $.baseUrl }}/product/{{.Item.Id}}">
-              <img loading="lazy" src="{{ $.baseUrl }}{{.Item.Picture}}">
+          <div class="col-sm-6 col-lg-4 hot-product-card">
+            <a href="{{ $.baseUrl }}/product/{{.Item.Id}}" class="hot-product-link">
+              <img loading="lazy" src="{{ $.baseUrl }}{{.Item.Picture}}" alt="{{ .Item.Name }}">
               <div class="hot-product-card-img-overlay"></div>
             </a>
-            <div>
+            <div class="hot-product-card-info">
               <div class="hot-product-card-name">{{ .Item.Name }}</div>
               <div class="hot-product-card-price">{{ renderMoney .Price }}</div>
             </div>
           </div>
           {{ end }}
-
         </div>
-
-        <!-- Footer for larger screens. -->
-        <div class="row d-none d-lg-block home-desktop-footer-row">
-          <div class="col-12 p-0">
-            {{ template "footer" . }}
-          </div>
-        </div>
-
       </div>
-
     </div>
-  </div>
-
+  </section>
 </main>
 
-<!-- Footer for smaller screens. -->
-<div class="d-lg-none">
-  {{ template "footer" . }}
-</div>
+{{ template "footer" . }}
 
 {{ end }}

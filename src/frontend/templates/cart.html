@@ -26,23 +26,24 @@
     <main role="main" class="cart-sections">
 
         {{ if eq (len $.items) 0 }}
-        <section class="empty-cart-section">
+        <section class="empty-cart-section cart-surface">
+            <p class="cart-eyebrow">Your cart</p>
             <h3>Your shopping cart is empty!</h3>
             <p>Items you add to your shopping cart will appear here.</p>
             <a class="cymbal-button-primary" href="{{ $.baseUrl }}/" role="button">Continue Shopping</a>
         </section>
         {{ else }}
-        <section class="container">
+        <section class="container cart-shell">
             <div class="row">
 
-                <div class="col-lg-6 col-xl-5 offset-xl-1 cart-summary-section">
+                <div class="col-lg-6 col-xl-5 offset-xl-1 cart-summary-section cart-surface">
 
-                    <div class="row mb-3 py-2">
+                    <div class="row mb-3 py-2 cart-summary-heading-row">
                         <div class="col-4 pl-md-0">
                             <h3>Cart ({{ $.cart_size }})</h3>
                         </div>
                         <div class="col-8 pr-md-0 text-right">
-                            <form method="POST" action="{{ $.baseUrl }}/cart/empty">
+                            <form method="POST" action="{{ $.baseUrl }}/cart/empty" class="cart-summary-actions">
                                 <button class="cymbal-button-secondary cart-summary-empty-cart-button" type="submit">
                                     Empty Cart
                                 </button>
@@ -55,12 +56,12 @@
 
                     {{ range $.items }}
                     <div class="row cart-summary-item-row">
-                        <div class="col-md-4 pl-md-0">
+                        <div class="col-md-4 pl-md-0 cart-summary-item-image-col">
                             <a href="{{ $.baseUrl }}/product/{{.Item.Id}}">
-                                <img class="img-fluid" alt="" src="{{ $.baseUrl }}{{.Item.Picture}}" />
+                                <img class="img-fluid" alt="{{ .Item.Name }}" src="{{ $.baseUrl }}{{.Item.Picture}}" />
                             </a>
                         </div>
-                        <div class="col-md-8 pr-md-0">
+                        <div class="col-md-8 pr-md-0 cart-summary-item-content-col">
                             <div class="row">
                                 <div class="col">
                                     <h4>{{ .Item.Name }}</h4>
@@ -71,7 +72,7 @@
                                     SKU #{{ .Item.Id }}
                                 </div>
                             </div>
-                            <div class="row">
+                            <div class="row cart-summary-line">
                                 <div class="col">
                                     Quantity: {{ .Quantity }}
                                 </div>
@@ -97,9 +98,9 @@
 
                 </div>
 
-                <div class="col-lg-5 offset-lg-1 col-xl-4">
+                <div class="col-lg-5 offset-lg-1 col-xl-4 cart-checkout-column">
 
-                    <form class="cart-checkout-form" action="{{ $.baseUrl }}/cart/checkout" method="POST">
+                    <form class="cart-checkout-form cart-surface" action="{{ $.baseUrl }}/cart/checkout" method="POST">
 
                         <div class="row">
                             <div class="col">
@@ -185,7 +186,7 @@
                                     <option value="9">September</option>
                                     <option value="10">October</option>
                                     <option value="11">November</option>
-                                    <option value="12">January</option>
+                                    <option value="12">December</option>
                                 </select>
                                 <img src="{{ $.baseUrl }}/static/icons/Hipster_DownArrow.svg" alt="" class="cymbal-dropdown-chevron">
                             </div>

@@ -1,3 +1,25 @@
+## 2026-04-21
+- a97b317 feat(setup): add macOS/windows quickstart install scripts
+- 53f12d5 docs: auto update changelog [skip ci]
+- 46030e9 feat(frontend): elevate shopping UX across home assistant cart order
+- ea193fc docs: auto update changelog [skip ci]
+- d2e13c1 fix: stabilize local skaffold deploy on kind
+- 575d455 docs(quality): fix engineering quality plan content
+- 17d3913 docs: auto update changelog [skip ci]
+- 0d130fa docs(quality): add engineering quality section to README
+- b4517a9 docs(quality): add engineering quality plan
+- 17531de ci(quality): add repo contract workflow
+- 8596988 test(quality): add repository contract test
+- a695c80 docs: auto update changelog [skip ci]
+- 36ddf57 chore(repo-health): add tests scaffold
+- 17e1ec1 chore(repo-health): add CodeQL workflow
+- 857ad11 chore(repo-health): add dependabot config
+- 5d1db41 chore(repo-health): add contributing guide
+- 66e245f docs: auto update changelog [skip ci]
+- b9cab41 ci: grant changelog workflow contents write permission
+- cddadaa chore(activity): fill global empty day [GD-20260222]
+- b05cf84 chore(activity): fill cadence gap [GF-20260326-1]
+
 ## 2026-04-16
 - 46030e9 feat(frontend): elevate shopping UX across home assistant cart order
 - ea193fc docs: auto update changelog [skip ci]

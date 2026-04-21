@@ -165,13 +165,35 @@ flowchart LR
 - Kubernetes（可选）
 - `skaffold`（可选）
 
-### 7.2 构建与运行（Kubernetes）
+### 7.2 一键安装与运行（推荐）
+
+- macOS（自动安装 Docker/kubectl/skaffold/kind，并执行部署）：
+
+```bash
+bash scripts/setup/quickstart-macos.sh
+```
+
+- Windows PowerShell（自动安装 Docker/kubectl/skaffold/kind，并执行部署）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup\quickstart-windows.ps1
+```
+
+部署完成后可执行：
+
+```bash
+kubectl port-forward deployment/frontend 8080:8080
+```
+
+然后访问 `http://localhost:8080`。
+
+### 7.3 构建与运行（Kubernetes）
 
 ```bash
 skaffold run
 ```
 
-### 7.3 启用 loadgenerator
+### 7.4 启用 loadgenerator
 
 ```bash
 skaffold run --module loadgenerator

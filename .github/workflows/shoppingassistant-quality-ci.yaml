@@ -28,7 +28,7 @@ jobs:
         run: ruff check .
       - name: Mypy
         working-directory: src/shoppingassistantservice
-        run: mypy shoppingassistantservice.py
+        run: mypy shoppingassistantservice.py config.py metrics.py resilience.py retriever.py model_client.py
       - name: Pytest
         working-directory: src/shoppingassistantservice
         run: pytest

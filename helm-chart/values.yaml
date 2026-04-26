@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Default values for onlineboutique.
+# Default values for however-microservices-lab.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -214,7 +214,7 @@ cartDatabase:
     certificate: ""
 
 # @TODO: This service is not currently available in Helm.
-# https://github.com/GoogleCloudPlatform/microservices-demo/tree/main/kustomize/components/shopping-assistant
+# https://github.com/however-yir/however-microservices-lab/tree/main/kustomize/components/shopping-assistant
 shoppingAssistantService:
   create: false
   name: shoppingassistantservice

@@ -47,7 +47,7 @@ jobs:
           SPANNER_CONNECTION_STRING=projects/PROJECT_ID/instances/SPANNER_INSTANCE_NAME/databases/SPANNER_DATABASE_NAME
           helm template . \
             --set nativeGrpcHealthCheck=true \
-            -n onlineboutique \
+            -n however-microservices-lab \
             > helm-template.yaml
           cat helm-template.yaml
           kustomize build .
@@ -64,7 +64,7 @@ jobs:
             --set serviceAccounts.create=true \
             --set serviceAccounts.annotationsOnlyForCartservice=true \
             --set "serviceAccounts.annotations.iam\.gke\.io/gcp-service-account=${SPANNER_DB_USER_GSA_ID}" \
-            -n onlineboutique \
+            -n however-microservices-lab \
             > helm-template.yaml
           cat helm-template.yaml
           kustomize build .
@@ -83,7 +83,7 @@ jobs:
             --set frontend.virtualService.gateway.namespace=asm-ingress \
             --set frontend.virtualService.gateway.labelKey=asm \
             --set frontend.virtualService.gateway.labelValue=ingressgateway \
-            -n onlineboutique \
+            -n however-microservices-lab \
             > helm-template.yaml
           cat helm-template.yaml
           kustomize build .
@@ -101,7 +101,7 @@ jobs:
             --set cartDatabase.externalRedisTlsOrigination.certificate="${REDIS_CERT}" \
             --set cartDatabase.externalRedisTlsOrigination.endpointAddress=${REDIS_IP} \
             --set cartDatabase.externalRedisTlsOrigination.endpointPort=${REDIS_PORT} \
-            -n onlineboutique \
+            -n however-microservices-lab \
             > helm-template.yaml
           cat helm-template.yaml
           kustomize build .

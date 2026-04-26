@@ -16,6 +16,7 @@ using System;
 using System.Threading.Tasks;
 using Grpc.Net.Client;
 using Hipstershop;
+using cartservice.cartstore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Hosting;
@@ -36,6 +37,15 @@ namespace cartservice.tests
                     .UseStartup<Startup>()
                     .UseTestServer();
             });
+        }
+
+        [Fact]
+        public void AlloyDBTableName_RejectsUnsafeIdentifier()
+        {
+            Assert.Equal("CartItems", AlloyDBCartStore.ValidateIdentifier("CartItems"));
+            Assert.Throws<InvalidOperationException>(() => AlloyDBCartStore.ValidateIdentifier("CartItems; DROP TABLE users"));
+            Assert.Throws<InvalidOperationException>(() => AlloyDBCartStore.ValidateIdentifier("public.CartItems"));
+            Assert.Throws<InvalidOperationException>(() => AlloyDBCartStore.ValidateIdentifier("1CartItems"));
         }
 
         [Fact]

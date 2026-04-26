@@ -12,9 +12,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License. -->
 
-# Use Terraform to deploy Online Boutique on a GKE cluster
+# Use Terraform to deploy however-microservices-lab on a GKE cluster
 
-This page walks you through the steps required to deploy the [Online Boutique](https://github.com/GoogleCloudPlatform/microservices-demo) sample application on a [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine) cluster using Terraform.
+This page walks you through the steps required to deploy `however-microservices-lab` on a [Google Kubernetes Engine (GKE)](https://cloud.google.com/kubernetes-engine) cluster using Terraform.
 
 ## Prerequisites
 
@@ -22,16 +22,16 @@ This page walks you through the steps required to deploy the [Online Boutique](h
 
 ## Deploy the sample application
 
-1. Clone the Github repository.
+1. Clone this GitHub repository.
 
     ```bash
-    git clone https://github.com/GoogleCloudPlatform/microservices-demo.git
+    git clone https://github.com/however-yir/however-microservices-lab.git
     ```
 
 1. Move into the `terraform/` directory which contains the Terraform installation scripts.
 
     ```bash
-    cd microservices-demo/terraform
+    cd however-microservices-lab/terraform
     ```
 
 1. Open the `terraform.tfvars` file and replace `<project_id_here>` with the [GCP Project ID](https://cloud.google.com/resource-manager/docs/creating-managing-projects?hl=en#identifying_projects) for the `gcp_project_id` variable.

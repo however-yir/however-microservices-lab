@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Packages and pushes Online Boutique's Helm chart in public Artifact Registry.
+# Packages and pushes however-microservices-lab's Helm chart in public Artifact Registry.
 
 set -euo pipefail
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -29,8 +29,8 @@ cd ${REPO_ROOT}/helm-chart
 gsed -i "s/^appVersion:.*/appVersion: \"${TAG}\"/" Chart.yaml
 gsed -i "s/^version:.*/version: ${TAG:1}/" Chart.yaml
 helm package .
-helm push onlineboutique-${TAG:1}.tgz oci://$HELM_CHART_REPO
+helm push however-microservices-lab-${TAG:1}.tgz oci://$HELM_CHART_REPO
 
-rm ./onlineboutique-${TAG:1}.tgz
+rm ./however-microservices-lab-${TAG:1}.tgz
 
 log "Successfully built and pushed the Helm chart."

@@ -48,9 +48,17 @@ cd src/paymentservice && npm ci && npm test
 cd src/shoppingassistantservice
 python3 -m pip install -r requirements.txt
 python3 -m ruff check .
-python3 -m mypy shoppingassistantservice.py
+python3 -m mypy shoppingassistantservice.py config.py metrics.py resilience.py retriever.py model_client.py
 python3 -m pytest
 ```
+
+### 3.4 端到端 Smoke Test
+
+```bash
+bash tests/e2e/kind_skaffold_smoke.sh
+```
+
+该脚本会通过 `skaffold -p e2e` 部署 kind 环境，并验证首页、商品页、购物车、结算和 AI 助手链路。
 
 ## 4. CI 对应关系
 

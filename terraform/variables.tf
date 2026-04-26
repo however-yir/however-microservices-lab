@@ -20,7 +20,7 @@ variable "gcp_project_id" {
 variable "name" {
   type        = string
   description = "Name given to the new GKE cluster"
-  default     = "online-boutique"
+  default     = "however-microservices-lab"
 }
 
 variable "region" {
@@ -31,17 +31,17 @@ variable "region" {
 
 variable "namespace" {
   type        = string
-  description = "Kubernetes Namespace in which the Online Boutique resources are to be deployed"
+  description = "Kubernetes Namespace in which however-microservices-lab resources are to be deployed"
   default     = "default"
 }
 
 variable "filepath_manifest" {
   type        = string
-  description = "Path to Online Boutique's Kubernetes resources, written using Kustomize"
+  description = "Path to however-microservices-lab Kubernetes resources, written using Kustomize"
   default     = "../kustomize/"
 }
 
 variable "memorystore" {
   type        = bool
-  description = "If true, Online Boutique's in-cluster Redis cache will be replaced with a Google Cloud Memorystore Redis cache"
+  description = "If true, the in-cluster Redis cache will be replaced with a Google Cloud Memorystore Redis cache"
 }

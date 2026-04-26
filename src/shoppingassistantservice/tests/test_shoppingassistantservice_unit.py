@@ -89,3 +89,14 @@ def test_metrics_endpoint_exposes_prometheus_metrics(
     text = metrics_resp.get_data(as_text=True)
     assert "shopping_assistant_requests_total" in text
     assert "shopping_assistant_retrieval_queries_total" in text
+
+
+def test_config_rejects_unknown_model_provider(
+    monkeypatch: pytest.MonkeyPatch, json_catalog_path: str
+):
+    monkeypatch.setenv("MODEL_PROVIDER", "unknown")
+    monkeypatch.setenv("VECTORSTORE_BACKEND", "json")
+    monkeypatch.setenv("PRODUCT_CATALOG_JSON", json_catalog_path)
+
+    with pytest.raises(ValueError, match="MODEL_PROVIDER"):
+        appmod._build_config()

@@ -1,0 +1,56 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../kubernetes-manifests
+  - mock-ollama.yaml
+components:
+  - ../../../kustomize/components/shopping-assistant
+patches:
+  - target:
+      kind: Deployment
+      name: frontend
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: frontend
+      spec:
+        template:
+          spec:
+            containers:
+              - name: server
+                env:
+                  - name: ENABLE_ASSISTANT
+                    value: "true"
+  - target:
+      kind: Deployment
+      name: shoppingassistantservice
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: shoppingassistantservice
+      spec:
+        template:
+          spec:
+            containers:
+              - name: server
+                env:
+                  - name: MODEL_PROVIDER
+                    value: "ollama"
+                  - name: OLLAMA_BASE_URL
+                    value: "http://ollama:11434"
+                  - name: OLLAMA_ALLOWED_HOSTS
+                    value: "ollama"
+                  - name: OLLAMA_MODEL
+                    value: "e2e-mock"
+                  - name: OLLAMA_TIMEOUT_SECONDS
+                    value: "5"
+                  - name: ENABLE_TRACING
+                    value: "0"
+                  - name: VECTORSTORE_BACKEND
+                    value: "json"
+                  - name: PRODUCT_CATALOG_JSON
+                    value: "/shoppingassistantservice/products.local.json"
+                  - name: RATE_LIMIT_MAX_REQUESTS
+                    value: "1000"

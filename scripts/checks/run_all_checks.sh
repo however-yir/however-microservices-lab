@@ -38,7 +38,7 @@ run_step "Python lint (ruff)" \
   bash -lc "cd '${ROOT_DIR}/src/shoppingassistantservice' && '${PYTHON_CMD}' -m ruff check ."
 
 run_step "Python type check (mypy)" \
-  bash -lc "cd '${ROOT_DIR}/src/shoppingassistantservice' && '${PYTHON_CMD}' -m mypy shoppingassistantservice.py"
+  bash -lc "cd '${ROOT_DIR}/src/shoppingassistantservice' && '${PYTHON_CMD}' -m mypy shoppingassistantservice.py config.py metrics.py resilience.py retriever.py model_client.py"
 
 run_step "Python tests (pytest)" \
   bash -lc "cd '${ROOT_DIR}/src/shoppingassistantservice' && '${PYTHON_CMD}' -m pytest"

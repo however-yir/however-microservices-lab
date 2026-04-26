@@ -232,7 +232,7 @@ func (fe *frontendServer) addToCartHandler(w http.ResponseWriter, r *http.Reques
 		renderHTTPError(log, r, w, errors.Wrap(err, "failed to add to cart"), http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("location", baseUrl + "/cart")
+	w.Header().Set("location", baseUrl+"/cart")
 	w.WriteHeader(http.StatusFound)
 }
 
@@ -244,7 +244,7 @@ func (fe *frontendServer) emptyCartHandler(w http.ResponseWriter, r *http.Reques
 		renderHTTPError(log, r, w, errors.Wrap(err, "failed to empty cart"), http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("location", baseUrl + "/")
+	w.Header().Set("location", baseUrl+"/")
 	w.WriteHeader(http.StatusFound)
 }
 
@@ -423,7 +423,7 @@ func (fe *frontendServer) logoutHandler(w http.ResponseWriter, r *http.Request) 
 		c.MaxAge = -1
 		http.SetCookie(w, c)
 	}
-	w.Header().Set("Location", baseUrl + "/")
+	w.Header().Set("Location", baseUrl+"/")
 	w.WriteHeader(http.StatusFound)
 }
 
@@ -444,18 +444,23 @@ func (fe *frontendServer) getProductByID(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	w.Write(jsonData)
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
+	w.Write(jsonData)
 }
 
 func (fe *frontendServer) chatBotHandler(w http.ResponseWriter, r *http.Request) {
 	log := r.Context().Value(ctxKeyLog{}).(logrus.FieldLogger)
 	type Response struct {
 		Message string `json:"message"`
+		TraceID string `json:"trace_id,omitempty"`
+		Error   string `json:"error,omitempty"`
 	}
 
 	type LLMResponse struct {
 		Content string         `json:"content"`
+		Error   string         `json:"error"`
+		TraceID string         `json:"trace_id"`
 		Details map[string]any `json:"details"`
 	}
 
@@ -474,6 +479,7 @@ func (fe *frontendServer) chatBotHandler(w http.ResponseWriter, r *http.Request)
 		renderHTTPError(log, r, w, errors.Wrap(err, "failed to send request"), http.StatusInternalServerError)
 		return
 	}
+	defer res.Body.Close()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
@@ -481,19 +487,27 @@ func (fe *frontendServer) chatBotHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	fmt.Printf("%+v\n", body)
-	fmt.Printf("%+v\n", res)
-
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		renderHTTPError(log, r, w, errors.Wrap(err, "failed to unmarshal body"), http.StatusInternalServerError)
 		return
 	}
 
-	// respond with the same message
-	json.NewEncoder(w).Encode(Response{Message: response.Content})
+	w.Header().Set("Content-Type", "application/json")
+	if res.StatusCode >= http.StatusBadRequest {
+		w.WriteHeader(res.StatusCode)
+		json.NewEncoder(w).Encode(Response{
+			Error:   response.Error,
+			TraceID: response.TraceID,
+		})
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(Response{
+		Message: response.Content,
+		TraceID: response.TraceID,
+	})
 }
 
 func (fe *frontendServer) setCurrencyHandler(w http.ResponseWriter, r *http.Request) {

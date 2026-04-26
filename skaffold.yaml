@@ -67,6 +67,11 @@ deploy:
 # This is not used by default. To use it, run:
 #     skaffold run -p gcb
 profiles:
+- name: e2e
+  patches:
+  - op: replace
+    path: /manifests/kustomize/paths/0
+    value: tests/e2e/kustomize
 - name: gcb
   build:
     googleCloudBuild:

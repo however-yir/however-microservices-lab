@@ -13,8 +13,8 @@
 # limitations under the License.
 
 apiVersion: v2
-name: onlineboutique
-description: A Helm chart for Kubernetes for Online Boutique
+name: however-microservices-lab
+description: A Helm chart for Kubernetes for however-microservices-lab
 
 # A chart can be either an 'application' or a 'library' chart.
 #

@@ -49,6 +49,7 @@
       </div>
       <div class="bot-input" role="group" aria-label="Assistant input area">
         <input id="bot-input-text" type="text" class="bot-input-text" placeholder="Ask for recommendations, categories, or bundles...">
+        <input id="bot-input-image-url" type="url" class="bot-input-url" placeholder="Image URL">
         <label for="bot-input-file" class="bot-input-file-label">
           Attach image
           <input id="bot-input-file" type="file" class="bot-input-file-button" accept="image/*">
@@ -90,6 +91,7 @@
   const botMessages = document.getElementById("bot-messages");
   const botbutton = document.getElementById("bot-input-button");
   const botinput = document.getElementById("bot-input-text");
+  const botImageUrlInput = document.getElementById("bot-input-image-url");
   const botFileInput = document.getElementById("bot-input-file");
   const suggestionButtons = document.querySelectorAll(".assistant-suggestion");
 
@@ -113,6 +115,8 @@
 
   async function handleButtonClick() {
     const message = botinput.value.trim();
+    const imageUrl = botImageUrlInput.value.trim();
+    const imagePayload = image || imageUrl;
     if (!message) {
       return;
     }
@@ -125,11 +129,11 @@
     usermessage.appendChild(userMessageSpan);
     botMessages.appendChild(usermessage);
 
-    if (image) {
+    if (imagePayload) {
       const imageDivElement = document.createElement("div");
       imageDivElement.classList.add("user-image-div");
       const imageElement = document.createElement("img");
-      imageElement.src = image;
+      imageElement.src = imagePayload;
       imageElement.classList.add("user-image");
       imageElement.onerror = function () {
         this.style.display = "none";
@@ -140,9 +144,11 @@
 
     botMessages.scrollTo(0, botMessages.scrollHeight);
     botinput.value = "";
+    botImageUrlInput.value = "";
 
     botbutton.disabled = true;
     botinput.disabled = true;
+    botImageUrlInput.disabled = true;
 
     const botMessage = document.createElement("p");
     botMessage.classList.add("bot-message-loading");
@@ -166,15 +172,21 @@
         })
       });
 
-      if (!response.ok) {
-        throw new Error("Assistant service unavailable");
-      }
-
       const responseJson = await response.json();
+      if (!response.ok) {
+        throw new Error(responseJson.error || "Assistant service unavailable");
+      }
       const extractedIds = extractIdsFromString(responseJson.message || "");
 
       botMessageSpan.textContent = (responseJson.message || "").replace(/\n+[-*\d][\S\s]*/g, "");
       botMessage.classList.remove("bot-message-loading");
+
+      if (responseJson.trace_id) {
+        const traceElement = document.createElement("span");
+        traceElement.classList.add("bot-trace");
+        traceElement.textContent = "trace " + responseJson.trace_id;
+        botMessage.appendChild(traceElement);
+      }
 
       if (extractedIds.length > 0) {
         const botProductsDiv = document.createElement("div");
@@ -228,13 +240,14 @@
         botMessages.appendChild(botProductsDiv);
       }
     } catch (error) {
-      botMessageSpan.textContent = "I hit a temporary issue. Please try again in a moment.";
+      botMessageSpan.textContent = error.message || "I hit a temporary issue. Please try again in a moment.";
       botMessage.classList.remove("bot-message-loading");
       botMessage.classList.add("bot-message-error");
     } finally {
       botMessages.scrollTo(0, botMessages.scrollHeight);
       botbutton.disabled = false;
       botinput.disabled = false;
+      botImageUrlInput.disabled = false;
       botinput.focus();
       botFileInput.value = "";
       image = "";

@@ -13,6 +13,8 @@
   <img src="https://img.shields.io/badge/Runtime-Kubernetes-22c55e" alt="Kubernetes" />
   <img src="https://img.shields.io/badge/Protocols-gRPC%20%2B%20HTTP-f59e0b" alt="Protocols" />
   <img src="https://img.shields.io/badge/AI%20Backend-Gemini%20%7C%20Ollama-64748b" alt="AI backend" />
+  <br/>
+  <img src="https://github.com/however-yir/however-microservices-lab/actions/workflows/ci-main.yaml/badge.svg" alt="CI">
 </p>
 
 ---

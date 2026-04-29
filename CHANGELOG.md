@@ -1,3 +1,11 @@
+## 2026-04-29
+- docs: add upstream diff proof for AI microservices lab positioning
+- docs: rewrite README first screen around AI assistant, local Ollama, Kubernetes and service matrix
+- feat(local-demo): add Redis + Ollama + JSON catalog demo entrypoint
+- ci: add ubuntu-latest quick multi-language CI and replace deprecated set-env usage
+- test(ai): cover Gemini/Ollama contracts, JSON fallback, healthz and degraded model responses
+- docs(release): draft AI microservices lab baseline release notes
+
 ## 2026-04-25
 - b32ff04 fix(ci): let changelog updates run checks
 - e282ff4 docs: auto update changelog [skip ci]

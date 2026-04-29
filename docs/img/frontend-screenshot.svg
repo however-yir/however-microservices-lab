@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="620" viewBox="0 0 980 620" role="img" aria-labelledby="title desc">
+  <title id="title">however frontend screenshot</title>
+  <desc id="desc">Stylized screenshot of the however microservices lab shopping frontend with product cards and AI assistant entry point.</desc>
+  <defs>
+    <style>
+      .screen { fill: #f7f9fc; stroke: #cbd5e1; stroke-width: 2; }
+      .nav { fill: #172033; }
+      .panel { fill: #ffffff; stroke: #d8e0ea; }
+      .primary { fill: #0b66d7; }
+      .accent { fill: #f59e0b; }
+      .muted { fill: #e7edf5; }
+      .title { font: 700 32px Arial, sans-serif; fill: #172033; }
+      .h { font: 700 17px Arial, sans-serif; fill: #172033; }
+      .small { font: 13px Arial, sans-serif; fill: #5f6f82; }
+      .white { fill: #ffffff; font: 700 14px Arial, sans-serif; }
+    </style>
+  </defs>
+  <rect x="18" y="18" width="944" height="584" rx="28" class="screen"/>
+  <rect x="18" y="18" width="944" height="72" rx="28" class="nav"/>
+  <circle cx="62" cy="54" r="17" fill="#22c55e"/>
+  <text x="92" y="60" class="white">however shop</text>
+  <text x="704" y="60" class="white">AI Assistant</text>
+  <rect x="826" y="36" width="92" height="34" rx="17" fill="#ffffff"/>
+  <text x="850" y="58" class="small">Cart 2</text>
+
+  <text x="58" y="146" class="title">Cloud native shopping lab</text>
+  <text x="58" y="178" class="small">Go frontend, gRPC services, Redis cart, JSON catalog fallback and optional AI shopping assistant.</text>
+  <rect x="58" y="210" width="182" height="44" rx="10" class="primary"/>
+  <text x="82" y="238" class="white">Ask AI Concierge</text>
+  <rect x="260" y="210" width="150" height="44" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="286" y="238" class="small">Browse catalog</text>
+
+  <rect x="58" y="302" width="250" height="228" rx="16" class="panel"/>
+  <rect x="82" y="326" width="202" height="104" rx="14" class="muted"/>
+  <circle cx="183" cy="378" r="34" fill="#94a3b8"/>
+  <text x="82" y="468" class="h">Vintage camera</text>
+  <text x="82" y="494" class="small">JSON catalog item</text>
+  <text x="82" y="518" class="small">$49.99</text>
+
+  <rect x="365" y="302" width="250" height="228" rx="16" class="panel"/>
+  <rect x="389" y="326" width="202" height="104" rx="14" fill="#eef7ff"/>
+  <path d="M428 398 C462 350 510 354 552 398 Z" class="primary"/>
+  <text x="389" y="468" class="h">Desk lamp</text>
+  <text x="389" y="494" class="small">Assistant-ready product</text>
+  <text x="389" y="518" class="small">$34.50</text>
+
+  <rect x="672" y="302" width="250" height="228" rx="16" class="panel"/>
+  <rect x="696" y="326" width="202" height="104" rx="14" fill="#fff6e6"/>
+  <rect x="740" y="362" width="110" height="44" rx="10" class="accent"/>
+  <text x="696" y="468" class="h">Coffee gift kit</text>
+  <text x="696" y="494" class="small">Recommended bundle</text>
+  <text x="696" y="518" class="small">$65.00</text>
+</svg>

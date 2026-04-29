@@ -1,20 +1,29 @@
 # GitHub Actions Workflows
 
-This page describes the CI/CD workflows for the Online Boutique app, which run in [Github Actions](https://github.com/GoogleCloudPlatform/microservices-demo/actions).
+This page describes the CI/CD workflows for `however-microservices-lab`.
 
 ## Infrastructure
 
-The CI/CD pipelines for Online Boutique run in Github Actions, using a pool of two [self-hosted runners]((https://help.github.com/en/actions/automating-your-workflow-with-github-actions/about-self-hosted-runners)). These runners are GCE instances (virtual machines) that, for every open Pull Request in the repo, run the code test pipeline, deploy test pipeline, and (on main) deploy the latest version of the app to [cymbal-shops.retail.cymbal.dev](https://cymbal-shops.retail.cymbal.dev)
+The default quality gate is [quick-ci.yaml](quick-ci.yaml), which runs on `ubuntu-latest` and does not require self-hosted runners.
 
-We also host a test GKE cluster, which is where the deploy tests run. Every PR has its own namespace in the cluster.
+The legacy PR/Main deployment workflows are still present for GKE staging scenarios that need Google Cloud credentials and self-hosted runner capacity. They should be treated as optional release/deployment infrastructure, not as the baseline contributor CI.
 
 ## Workflows
 
-**Note**: In order for the current CI/CD setup to work on your pull request, you must branch directly off the repo (no forks). This is because the Github secrets necessary for these tests aren't copied over when you fork.
+**Note**: `quick-ci.yaml` works for ordinary pull requests. Legacy deploy workflows that stage into GKE still require repository secrets and trusted runner access.
+
+### Quick Multi-Language CI - [quick-ci.yaml](quick-ci.yaml)
+
+Runs on `ubuntu-latest` for pull requests, pushes to `main`, and manual dispatch. It covers:
+
+1. Go unit tests for `frontend`, `productcatalogservice`, `shippingservice` and `checkoutservice`.
+2. Node.js tests for `currencyservice` and `paymentservice`.
+3. Python ruff/mypy/pytest for `shoppingassistantservice`.
+4. Java Gradle tests and PMD for `adservice`.
 
 ### Code Tests - [ci-pr.yaml](ci-pr.yaml)
 
-These tests run on every commit for every open PR, as well as any commit to main / any release branch. Currently, this workflow runs only Go unit tests.
+These legacy tests run on self-hosted runners and are kept for cloud staging compatibility.
 
 
 ### Deploy Tests- [ci-pr.yaml](ci-pr.yaml)
@@ -27,20 +36,15 @@ These tests run on every commit for every open PR, as well as any commit to main
 4. Gets the LoadBalancer IP for the frontend service.
 5. Comments that IP in the pull request, for staging.
 
-### Push and Deploy Latest - [push-deploy](push-deploy.yml)
+### Push and Deploy Latest - legacy upstream reference
 
-This is the Continuous Deployment workflow, and it runs on every commit to the main branch. This workflow:
-
-1. Builds the container images for every service, tagging as `latest`.
-2. Pushes those images to Google Container Registry.
-
-Note that this workflow does not update the image tags used in `release/kubernetes-manifests.yaml` - these release manifests are tied to a stable `v0.x.x` release.
+The original upstream project included a push-and-deploy workflow for publishing `latest` images. In however-microservices-lab, production publishing should be treated as a release-specific decision rather than the default contributor path.
 
 ### Cleanup - [cleanup.yaml](cleanup.yaml)
 
 This workflow runs when a PR closes, regardless of whether it was merged into main. This workflow deletes the PR-specific GKE namespace in the test cluster.
 
-## Appendix - Creating a new Actions runner
+## Appendix - Legacy self-hosted runners
 
 Should one of the two self-hosted Github Actions runners (GCE instances) fail, or you want to add more runner capacity, this is how to provision a new runner. Note that you need IAM access to the admin Online Boutique GCP project in order to do this.
 

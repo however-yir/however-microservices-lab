@@ -1,23 +1,35 @@
-# however-microservices-lab - 微服务架构实践实验室 | Microservices Architecture Lab
+# however-microservices-lab
 
 <p align="center">
-  <img src="docs/img/however-logo.svg" width="360" alt="however logo" />
+  <img src="docs/img/however-logo.svg" width="340" alt="however logo" />
 </p>
 
-🔥 面向云原生工程实践的多语言微服务样例仓库。  
-🚀 聚焦配置解耦、可观测性、可替换 AI 推理后端（Gemini/Ollama）和本地化部署。  
-⭐ 适合作为微服务架构学习、二次开发与工程化改造基线。
+`however-microservices-lab` 是一个“云原生微服务 + AI 集成实验室”。它基于 Google Online Boutique 的多语言微服务样例继续改造，但核心目标已经从“电商 demo”升级为“可展示工程能力的微服务改造样板”：AI Shopping Assistant、本地 Ollama、JSON catalog fallback、Kubernetes 部署、多语言服务测试和 CI 基线都放在同一个仓库里。
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Architecture-Microservices-0ea5e9" alt="Architecture" />
+  <img src="https://img.shields.io/badge/AI-Gemini%20%7C%20Ollama-0b66d7" alt="AI backends" />
   <img src="https://img.shields.io/badge/Runtime-Kubernetes-22c55e" alt="Kubernetes" />
   <img src="https://img.shields.io/badge/Protocols-gRPC%20%2B%20HTTP-f59e0b" alt="Protocols" />
-  <img src="https://img.shields.io/badge/AI%20Backend-Gemini%20%7C%20Ollama-64748b" alt="AI backend" />
+  <img src="https://img.shields.io/badge/Services-Go%20Python%20Node%20Java%20C%23-f59e0b" alt="languages" />
+  <img src="https://img.shields.io/badge/CI-ubuntu--latest-64748b" alt="quick ci" />
   <br/>
   <img src="https://github.com/however-yir/however-microservices-lab/actions/workflows/ci-main.yaml/badge.svg" alt="CI">
 </p>
 
----
+## 首屏重点
+
+| 能力 | 入口 | 说明 |
+|---|---|---|
+| AI Shopping Assistant | `src/shoppingassistantservice` + `/assistant` | Python Flask 助手服务接入 Go frontend，支持文本/图片输入、商品 ID 推荐、健康检查、指标、限流、熔断和降级 |
+| 本地 Ollama 演示 | `make local-demo` | 本地 Redis + Ollama + JSON 商品数据，快速验证 `MODEL_PROVIDER=ollama` 和 `VECTORSTORE_BACKEND=json` |
+| Kubernetes 部署 | `skaffold run` / `make check-e2e` | 原生 manifests、Kustomize components、kind smoke、Skaffold 构建部署 |
+| 多语言工程矩阵 | Go / Python / Node.js / Java / C# | 保留电商主链路，同时补 AI 服务、质量测试和 CI 现代化 |
+
+![however architecture](docs/img/however-architecture.svg)
+
+| Frontend | AI assistant |
+|---|---|
+| ![frontend screenshot](docs/img/frontend-screenshot.svg) | ![assistant screenshot](docs/img/assistant-screenshot.svg) |
 
 ## AI 工程作品矩阵
 
@@ -31,297 +43,168 @@
 | [`forgepilot-studio`](https://github.com/however-yir/forgepilot-studio) | AI 工程执行工作台 | AI 编程任务、执行编排、审计回放、团队工作台 | Python、FastAPI、React、Runtime Sandbox、MCP |
 | [`however-microservices-lab`](https://github.com/however-yir/however-microservices-lab) | 云原生微服务 + AI 集成实验室 | 多语言微服务、Kubernetes、gRPC、AI 服务接入 | Go、Python、Java、Node.js、C#、K8s、Ollama/Gemini |
 
-## 目录
+## 快速开始
 
-- [AI 工程作品矩阵](#ai-工程作品矩阵)
-- [1. 项目定位](#1-项目定位)
-- [2. 改造目标](#2-改造目标)
-- [3. 核心改动总览](#3-核心改动总览)
-- [4. 微服务清单](#4-微服务清单)
-- [5. 架构总览](#5-架构总览)
-- [6. 项目结构](#6-项目结构)
-- [7. 快速开始](#7-快速开始)
-- [8. 配置说明（数据库/Redis/Ollama）](#8-配置说明数据库redisollama)
-- [9. 部署方式](#9-部署方式)
-- [10. 与原版差异](#10-与原版差异)
-- [11. 仓库信息与协议](#11-仓库信息与协议)
-- [12. 质量检测与验证](#12-质量检测与验证)
-
----
-
-## 1. 项目定位
-
-本仓库用于演示“多语言微服务在真实工程中如何持续演进”，重点不在单次跑通，而在长期可维护：
-
-- 支持微服务之间通过 gRPC 协作，前端通过 HTTP 暴露业务入口。
-- 支持 Kubernetes/Skaffold/Kustomize 多种部署路径。
-- 支持 AI 助手服务按环境切换模型后端（Gemini 或 Ollama）。
-- 支持关键地址配置外置，降低硬编码和环境耦合风险。
-
----
-
-## 2. 改造目标
-
-1. 建立统一的项目命名与命名空间规范。  
-2. 将数据库、缓存、模型 API 地址全部参数化。  
-3. 在不破坏主链路的前提下，提升依赖与配置可维护性。  
-4. 对购物助手服务做结构化重构，支持扩展能力。  
-5. 输出完整中文文档，便于交接与二开。
-
----
-
-## 3. 核心改动总览
-
-### 3.1 命名空间与构建标识
-
-- `src/adservice` 已调整构建元信息：
-  - `group`: `com.however.microservices`
-  - `artifact`（通过 `settings.gradle`）：`however-adservice`
-- Java 包声明已迁移：
-  - `hipstershop.*` -> `com.however.microservices.adservice.*`
-
-### 3.2 配置外置与本地化
-
-- 新增 `configs/however.env.example`，统一管理本地化参数。
-- `shoppingassistantservice` 新增可配置项：
-  - `MODEL_PROVIDER=gemini|ollama`
-  - `OLLAMA_BASE_URL` / `OLLAMA_MODEL`
-  - `VECTORSTORE_BACKEND=alloydb|json`
-  - `ALLOYDB_USER` / `ALLOYDB_PASSWORD` / `ALLOYDB_SECRET_NAME`
-
-### 3.3 依赖与构建维护
-
-- Node 服务 `currencyservice`、`paymentservice` 更新了项目元信息（名称、仓库、License、Node 版本约束）。
-- Java `adservice` 启动脚本与 Docker 入口路径同步更新。
-
-### 3.4 代码重构与新功能
-
-`shoppingassistantservice` 已进行结构化拆分：
-
-- `AppConfig`：统一配置读取
-- `CatalogRetriever`：检索后端抽象（AlloyDB / JSON 回退）
-- `DesignModelClient`：模型后端抽象（Gemini / Ollama）
-- 新增 `GET /healthz`
-- 新增本地兜底商品文件：`src/shoppingassistantservice/products.local.json`
-
----
-
-## 4. 微服务清单
-
-| 服务 | 语言 | 职责 |
-|---|---|---|
-| `frontend` | Go | Web 入口与页面渲染 |
-| `cartservice` | C# | 购物车存储（Redis/替代后端） |
-| `productcatalogservice` | Go | 商品目录检索 |
-| `currencyservice` | Node.js | 汇率与货币转换 |
-| `paymentservice` | Node.js | 支付模拟 |
-| `shippingservice` | Go | 运费与配送模拟 |
-| `emailservice` | Python | 订单邮件模拟 |
-| `checkoutservice` | Go | 结算编排 |
-| `recommendationservice` | Python | 推荐服务 |
-| `adservice` | Java | 广告推荐服务 |
-| `shoppingassistantservice` | Python | 图片/文本购物助手（可切换模型） |
-| `loadgenerator` | Python | 压测流量生成 |
-
----
-
-## 5. 架构总览
-
-```mermaid
-flowchart LR
-  U[用户浏览器] --> F[frontend]
-  F --> C[checkoutservice]
-  F --> CART[cartservice]
-  F --> P[productcatalogservice]
-  F --> R[recommendationservice]
-  F --> A[adservice]
-  F --> SA[shoppingassistantservice]
-
-  C --> PAY[paymentservice]
-  C --> S[shippingservice]
-  C --> E[emailservice]
-
-  CART --> REDIS[(Redis)]
-  SA --> MODEL[Gemini / Ollama]
-  SA --> VDB[AlloyDB / JSON Catalog]
-```
-
----
-
-## 6. 项目结构
-
-```text
-.
-├── README.md
-├── LICENSE
-├── LICENSE-HOWEVER.md
-├── configs/
-│   └── however.env.example
-├── docs/
-│   └── img/however-logo.svg
-├── kustomize/
-│   └── components/
-│       ├── shopping-assistant/
-│       └── local-endpoints/
-└── src/
-    ├── adservice/
-    ├── shoppingassistantservice/
-    ├── frontend/
-    └── ...
-```
-
----
-
-## 7. 快速开始
-
-### 7.1 本地准备
-
-- Docker / Docker Compose
-- Kubernetes（可选）
-- `skaffold`（可选）
-
-### 7.2 一键安装与运行（推荐）
-
-- macOS（自动安装 Docker/kubectl/skaffold/kind，并执行部署）：
+### 1. 本地 AI 演示
 
 ```bash
-bash scripts/setup/quickstart-macos.sh
+make local-demo
+curl -sS http://127.0.0.1:18081/healthz
 ```
 
-- Windows PowerShell（自动安装 Docker/kubectl/skaffold/kind，并执行部署）：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\setup\quickstart-windows.ps1
-```
-
-部署完成后可执行：
+需要真实 Ollama 推理时再拉模型：
 
 ```bash
-kubectl port-forward deployment/frontend 8080:8080
+LOCAL_DEMO_PULL_MODEL=1 make local-demo
+curl -sS \
+  -H "Content-Type: application/json" \
+  -d '{"message":"Recommend warm lighting for a small reading corner","image":""}' \
+  http://127.0.0.1:18081/
 ```
 
-然后访问 `http://localhost:8080`。
+停止：
 
-### 7.3 构建与运行（Kubernetes）
+```bash
+make local-demo-stop
+```
+
+完整说明见 [docs/local-demo.md](docs/local-demo.md)。
+
+### 2. 本地 Kubernetes smoke
+
+```bash
+make check-e2e
+```
+
+该路径使用 kind + Skaffold + Kustomize，启用 AI assistant 和 mock Ollama，覆盖首页、商品页、加购、结算和 `/bot` 助手请求。手动步骤见 [docs/kind-skaffold-kustomize.md](docs/kind-skaffold-kustomize.md)。
+
+### 3. 默认 Kubernetes 部署
 
 ```bash
 skaffold run
+kubectl port-forward deployment/frontend 8080:8080
 ```
 
-### 7.4 启用 loadgenerator
+访问 `http://127.0.0.1:8080`。
+
+## 多语言服务矩阵
+
+| 服务 | 语言 | 职责 | 改造重点 |
+|---|---|---|---|
+| `frontend` | Go | Web 入口、页面渲染、购物助手转发 | `/assistant`、`/bot`、商品元数据卡片 |
+| `shoppingassistantservice` | Python | AI 购物助手 | Gemini/Ollama、JSON/AlloyDB 检索、healthz、metrics、fallback |
+| `productcatalogservice` | Go | 商品目录 | JSON catalog、本地/AlloyDB 数据路径 |
+| `cartservice` | C# | 购物车 | Redis/外部存储切换 |
+| `checkoutservice` | Go | 结算编排 | gRPC 调用链和金额计算测试 |
+| `paymentservice` | Node.js | 支付模拟 | Node 20、包元信息和基础测试 |
+| `currencyservice` | Node.js | 汇率转换 | Node 20、汇率数据测试 |
+| `shippingservice` | Go | 运费模拟 | Go 单测 |
+| `emailservice` | Python | 邮件模拟 | Python gRPC 服务 |
+| `recommendationservice` | Python | 商品推荐 | Python gRPC 服务 |
+| `adservice` | Java | 广告推荐 | `com.however.microservices` 包迁移、Gradle/PMD |
+| `loadgenerator` | Python | 性能流量 | Locust baseline |
+
+## AI 助手设计
+
+```mermaid
+flowchart LR
+  U["Browser / assistant page"] --> F["frontend /bot"]
+  F --> SA["shoppingassistantservice"]
+  SA --> M{"MODEL_PROVIDER"}
+  M --> G["Gemini"]
+  M --> O["Ollama"]
+  SA --> R{"VECTORSTORE_BACKEND"}
+  R --> A["AlloyDB vector store"]
+  R --> J["JSON catalog fallback"]
+  SA --> H["/healthz /readyz /livez /metrics"]
+```
+
+关键配置：
+
+| 变量 | 作用 |
+|---|---|
+| `MODEL_PROVIDER=gemini\|ollama` | 切换云端 Gemini 或本地 Ollama |
+| `OLLAMA_BASE_URL` / `OLLAMA_MODEL` | 本地模型端点和模型名 |
+| `OLLAMA_ALLOWED_HOSTS` | 限制可访问的 Ollama host |
+| `VECTORSTORE_BACKEND=alloydb\|json` | 切换 AlloyDB 向量检索或 JSON fallback |
+| `PRODUCT_CATALOG_JSON` | JSON 商品数据路径 |
+| `MAX_RETRIES` / `CIRCUIT_BREAKER_*` | 错误重试和降级保护 |
+
+## 部署路径
+
+| 路径 | 入口 | 场景 |
+|---|---|---|
+| Local demo | `make local-demo` | 本机 Redis/Ollama/JSON 助手演示 |
+| Raw manifests | `kubernetes-manifests/` | 最小 Kubernetes 部署 |
+| Kustomize | `kustomize/components/*` | AI assistant、local endpoints、network policies、cloud operations 等组合 |
+| Skaffold | `skaffold.yaml` | 本地或 GKE 构建部署 |
+| Helm | `helm-chart/` | 实验性 Helm 部署路径 |
+| Terraform | `terraform/` | GKE + 可选 Memorystore 基础设施 |
+
+## 与上游的差异
+
+完整证据链见 [docs/diff-from-upstream.md](docs/diff-from-upstream.md)。摘要如下：
+
+- 明确保留 Google Online Boutique 的 Apache-2.0 来源和多语言微服务基线。
+- 迁移 however 命名空间、Java 包名、Gradle group、Node package 元信息和仓库 profile。
+- 新增 AI Shopping Assistant，接入 frontend，并提供模型后端切换。
+- 支持 Gemini/Ollama、AlloyDB/JSON catalog fallback。
+- 新增本地 Redis + Ollama + JSON 演示路径。
+- 增强 Kustomize components、Helm/Terraform 文档、kind smoke、loadgenerator 性能基线。
+- 新增 `ubuntu-latest` 快速多语言 CI，并清理旧式 `::set-env`。
+
+## 质量与 CI
+
+本地快速检查：
 
 ```bash
-skaffold run --module loadgenerator
+make check-python
+make check-node
+make check-java
+bash tests/repo_contract_test.sh
 ```
 
----
-
-## 8. 配置说明（数据库/Redis/Ollama）
-
-建议先复制配置模板并按环境覆盖：
-
-```bash
-cp configs/however.env.example .env.local
-```
-
-关键变量：
-
-- Redis：`REDIS_ADDR`
-- 模型后端：`MODEL_PROVIDER`, `OLLAMA_BASE_URL`, `OLLAMA_MODEL`
-- 向量检索：`VECTORSTORE_BACKEND`, `VECTOR_TOP_K`
-- AlloyDB：`PROJECT_ID`, `REGION`, `ALLOYDB_*`
-
-`shoppingassistantservice` 配置逻辑：
-
-1. `MODEL_PROVIDER=gemini` 时走 Gemini。  
-2. `MODEL_PROVIDER=ollama` 时走本地 Ollama API。  
-3. `VECTORSTORE_BACKEND=alloydb` 时使用 AlloyDB 向量检索。  
-4. AlloyDB 不可用时自动回退 `products.local.json`。
-
----
-
-## 9. 部署方式
-
-### 9.1 默认部署
-
-- 使用 `kubernetes-manifests` 或 `skaffold.yaml` 原生部署。
-
-### 9.2 本地依赖覆盖部署
-
-- 新增组件：`kustomize/components/local-endpoints`
-- 用于切换到本地 Redis + Ollama + JSON 检索回退。
-
-示例：
-
-```yaml
-components:
-  - ../components/local-endpoints
-```
-
----
-
-## 10. 与原版差异
-
-1. 增加 `however` 命名体系（构建标识与 Java 包）。  
-2. 购物助手改为可切换模型后端（Gemini / Ollama）。  
-3. 增加检索后端回退机制（AlloyDB -> JSON）。  
-4. 增加本地化配置模板，敏感参数统一外置。  
-5. 增加本地端点覆盖组件，减少清单硬改。  
-6. 文档全面中文化并补充工程化说明。
-
----
-
-## 11. 仓库信息与协议
-
-- 上游协议：`LICENSE`（Apache-2.0）
-- 本仓库衍生说明：`LICENSE-HOWEVER.md`
-- 仓库描述 / Topics 建议：`.github/HOWEVER_REPO_PROFILE.md`
-
----
-
-## 12. 质量检测与验证
-
-统一检测入口：
-
-```bash
-bash scripts/checks/run_all_checks.sh
-```
-
-或使用 Makefile：
+完整聚合入口：
 
 ```bash
 make check-all
 ```
 
-相关文档：
+CI 入口：
 
-- 落地清单：`docs/implementation-checklist.md`
-- 测试说明：`docs/testing-and-quality.md`
+- [.github/workflows/quick-ci.yaml](.github/workflows/quick-ci.yaml)：Go、Node、Python、Java 基础测试，运行在 `ubuntu-latest`。
+- [.github/workflows/shoppingassistant-quality-ci.yaml](.github/workflows/shoppingassistant-quality-ci.yaml)：AI 助手 ruff/mypy/pytest。
+- [.github/workflows/repo-contract-ci.yml](.github/workflows/repo-contract-ci.yml)：仓库质量契约。
 
-## Baseline Maintenance
+## 性能基线
 
-### Environment
-
-- Put runtime credentials in environment variables.
-- Use `.env.example` as the configuration template.
-
-### CI
-
-- `baseline-ci.yml` provides a unified pipeline with `lint + build + test + secret scan`.
-
-### Repo Hygiene
-
-- Keep generated files (`dist/`, `build/`, `__pycache__/`, `.idea/`, `.DS_Store`) out of version control.
-## Engineering Quality
-
-This repository includes a contract-based quality baseline to keep essential engineering standards stable over time.
-
-- Quality plan: [docs/ENGINEERING_QUALITY.md](docs/ENGINEERING_QUALITY.md)
-- Contract tests: [tests/repo_contract_test.sh](tests/repo_contract_test.sh)
-- Contract CI workflow: [.github/workflows/repo-contract-ci.yml](.github/workflows/repo-contract-ci.yml)
-
-Run local contract checks:
+生成模板：
 
 ```bash
-bash tests/repo_contract_test.sh
+./scripts/perf/generate_baseline_report.sh reports/performance/baseline-latest.md
 ```
+
+运行 `loadgenerator`：
+
+```bash
+skaffold run --module loadgenerator
+kubectl logs -l app=loadgenerator -f
+```
+
+说明见 [docs/performance-baseline.md](docs/performance-baseline.md)。
+
+## Release baseline
+
+本仓库的第一条建议发布线是 `AI microservices lab baseline`，突出：
+
+- 多语言微服务工程改造能力
+- Kubernetes/Skaffold/Kustomize 部署能力
+- Gemini/Ollama AI 服务集成能力
+- JSON fallback 和错误降级质量能力
+
+Release note 草稿见 [docs/releasing/ai-microservices-lab-baseline.md](docs/releasing/ai-microservices-lab-baseline.md)。
+
+## 协议
+
+- 上游协议：[LICENSE](LICENSE)
+- however 衍生说明：[LICENSE-HOWEVER.md](LICENSE-HOWEVER.md)

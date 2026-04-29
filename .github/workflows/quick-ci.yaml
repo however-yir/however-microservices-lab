@@ -1,0 +1,77 @@
+name: "Quick Multi-Language CI"
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quick-ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.26.1"
+          cache-dependency-path: |
+            src/frontend/go.sum
+            src/productcatalogservice/go.sum
+            src/shippingservice/go.sum
+            src/checkoutservice/go.sum
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: |
+            src/currencyservice/package-lock.json
+            src/paymentservice/package-lock.json
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: src/shoppingassistantservice/requirements.txt
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Go unit tests
+        run: |
+          set -euo pipefail
+          for service in frontend productcatalogservice shippingservice checkoutservice; do
+            echo "==> go test ${service}"
+            (cd "src/${service}" && go test ./...)
+          done
+
+      - name: Node service tests
+        run: |
+          set -euo pipefail
+          for service in currencyservice paymentservice; do
+            echo "==> npm test ${service}"
+            (cd "src/${service}" && npm ci && npm test)
+          done
+
+      - name: Python shopping assistant checks
+        working-directory: src/shoppingassistantservice
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          ruff check .
+          mypy shoppingassistantservice.py config.py metrics.py resilience.py retriever.py model_client.py
+          pytest
+
+      - name: Java adservice tests
+        working-directory: src/adservice
+        run: |
+          chmod +x gradlew
+          ./gradlew test pmdMain

@@ -10,6 +10,10 @@ required_files=(
   ".github/dependabot.yml"
   ".github/workflows/codeql.yml"
   ".github/workflows/repo-contract-ci.yml"
+  ".github/workflows/quick-ci.yaml"
+  "docs/diff-from-upstream.md"
+  "docs/local-demo.md"
+  "docs/kind-skaffold-kustomize.md"
   "docs/ENGINEERING_QUALITY.md"
 )
 

@@ -137,11 +137,21 @@ def create_app(config: AppConfig | None = None) -> Flask:
                 provider=config.model_provider,
                 backend=retriever.backend,
             )
-            room_description = model_client.describe_room(req_obj.image)
+            try:
+                room_description = model_client.describe_room(req_obj.image)
+            except Exception as err:  # pylint: disable=broad-exception-caught
+                _log_event("warning", "room_description_degraded", error=str(err))
+                room_description = (
+                    "未能读取图片或模型描述，已基于用户文字需求进入基础推荐模式。"
+                )
             vector_search_prompt = (
                 f"用户需求：{req_obj.message}。请从商品目录中检索与以下房间风格最匹配的商品：{room_description}"
             )
-            docs = retriever.similarity_search(vector_search_prompt, config.vector_top_k)
+            try:
+                docs = retriever.similarity_search(vector_search_prompt, config.vector_top_k)
+            except Exception as err:  # pylint: disable=broad-exception-caught
+                _log_event("warning", "catalog_retrieval_degraded", error=str(err))
+                docs = []
             candidate_ids = _extract_product_ids(docs)
             relevant_docs = ", ".join([json.dumps(doc, ensure_ascii=False) for doc in docs])
             content = model_client.recommend_products(

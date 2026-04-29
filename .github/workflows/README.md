@@ -21,14 +21,14 @@ Runs on `ubuntu-latest` for pull requests, pushes to `main`, and manual dispatch
 3. Python ruff/mypy/pytest for `shoppingassistantservice`.
 4. Java Gradle tests and PMD for `adservice`.
 
-### Code Tests - [ci-pr.yaml](ci-pr.yaml)
+### Legacy GKE PR Staging - [ci-pr.yaml](ci-pr.yaml)
 
-These legacy tests run on self-hosted runners and are kept for cloud staging compatibility.
+This workflow is manual-only. It still uses self-hosted runners and the historical GKE staging cluster, so it is kept for cloud staging compatibility rather than baseline PR quality gates.
 
 
-### Deploy Tests- [ci-pr.yaml](ci-pr.yaml)
+### Deploy Tests - [ci-pr.yaml](ci-pr.yaml)
 
-These tests run on every commit for every open PR, as well as any commit to main / any release branch. This workflow:
+These tests run only through `workflow_dispatch`. This workflow:
 
 1. Creates a dedicated GKE namespace for that PR, if it doesn't already exist, in the PR GKE cluster.
 2. Uses `skaffold run` to build and push the images specific to that PR commit. Then skaffold deploys those images, via `kubernetes-manifests`, to the PR namespace in the test cluster.

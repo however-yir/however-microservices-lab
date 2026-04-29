@@ -14,17 +14,16 @@
 
 name: "Continuous Integration - Pull Request"
 on:
-  pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - '**/README.md'
-      - 'kustomize/**'
-      - '.github/workflows/kustomize-build-ci.yaml'
-      - 'terraform/**'
-      - '.github/workflows/terraform-validate-ci.yaml'
-      - 'helm-chart/**'
-      - '.github/workflows/helm-chart-ci.yaml'
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number or manual namespace suffix for the legacy GKE staging run"
+        required: false
+        type: string
+      deploy_ref:
+        description: "Git ref/SHA to checkout for the legacy GKE staging run"
+        required: false
+        type: string
 
 # Ensure this workflow only runs for the most recent commit of a pull-request
 concurrency:
@@ -68,7 +67,7 @@ jobs:
     steps:
     - uses: actions/checkout@v6
       with:
-        ref: ${{github.event.pull_request.head.sha}}
+        ref: ${{ inputs.deploy_ref || github.ref }}
     - name: Build + Deploy PR images to GKE
       timeout-minutes: 20
       run: |
@@ -87,7 +86,7 @@ jobs:
         skaffold config set --global local-cluster false
         skaffold run --default-repo=us-docker.pkg.dev/$PROJECT_ID/refs/pull/$PR_NUMBER --tag=$PR_NUMBER --namespace=$NAMESPACE -p network-policies
       env:
-        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_NUMBER: ${{ inputs.pr_number || github.run_number }}
         PROJECT_ID: "online-boutique-ci"
         PR_CLUSTER: "prs-gke-cluster"
         REGION: "us-central1"
@@ -123,7 +122,7 @@ jobs:
         EXTERNAL_IP=$(get_externalIP)
         echo "EXTERNAL_IP=${EXTERNAL_IP}" >> "${GITHUB_ENV}"
       env:
-        PR_NUMBER: ${{ github.event.pull_request.number }}
+        PR_NUMBER: ${{ inputs.pr_number || github.run_number }}
     - name: Smoke Test
       timeout-minutes: 5
       run: |

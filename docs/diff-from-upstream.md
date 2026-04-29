@@ -160,7 +160,7 @@ Terraform 路径保留上游 GKE 部署能力，并加入 however 文档化和�
 | `adservice-quality-ci.yaml` | 保护 Java 包名迁移后的 Gradle 测试和 PMD |
 | `node-service-tests-ci.yaml` | 保护 Node 服务元信息和单测 |
 | `repo-contract-ci.yml` | 保护仓库工程质量清单 |
-| `ci-pr.yaml` / `ci-main.yaml` | 清理旧式 `::set-env`，改用 `$GITHUB_ENV` |
+| `ci-pr.yaml` / `ci-main.yaml` | 清理旧式 `::set-env`，改用 `$GITHUB_ENV`；旧 GKE PR staging 改为手动触发，避免 PR 默认依赖 self-hosted runner |
 
 可核验文件：
 

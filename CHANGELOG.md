@@ -3,6 +3,7 @@
 - docs: rewrite README first screen around AI assistant, local Ollama, Kubernetes and service matrix
 - feat(local-demo): add Redis + Ollama + JSON catalog demo entrypoint
 - ci: add ubuntu-latest quick multi-language CI and replace deprecated set-env usage
+- ci: make legacy self-hosted PR staging workflow manual-only
 - test(ai): cover Gemini/Ollama contracts, JSON fallback, healthz and degraded model responses
 - docs(release): draft AI microservices lab baseline release notes
 

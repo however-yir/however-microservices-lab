@@ -26,6 +26,13 @@ obj/
 pkg/
 release/wi-kubernetes-manifests.yaml
 vendor/
+coverage/
+tmp/
+.runtime/
+
+# Local copy/conflict artifacts
+* 2
+* 2.*
 
 # --- Baseline Ignore Rules ---
 __pycache__/

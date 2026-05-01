@@ -1,3 +1,10 @@
+## 2026-05-01
+- ci: upgrade actions/checkout@v4 → v6 and actions/upload-artifact@v4 → v7 across all workflows
+- docs: add "Based on" positioning statement (Google Online Boutique)
+- docs: add upstream diff summary table to README
+- docs: fix CI badge to point to quick-ci.yaml (active workflow)
+- release: create v0.1.0 milestone release
+
 ## 2026-04-29
 - docs: add upstream diff proof for AI microservices lab positioning
 - docs: rewrite README first screen around AI assistant, local Ollama, Kubernetes and service matrix

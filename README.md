@@ -4,7 +4,10 @@
   <img src="docs/img/however-logo.svg" width="340" alt="however logo" />
 </p>
 
-`however-microservices-lab` 是一个“云原生微服务 + AI 集成实验室”。它基于 Google Online Boutique 的多语言微服务样例继续改造，但核心目标已经从“电商 demo”升级为“可展示工程能力的微服务改造样板”：AI Shopping Assistant、本地 Ollama、JSON catalog fallback、Kubernetes 部署、多语言服务测试和 CI 基线都放在同一个仓库里。
+`however-microservices-lab` 是一个”云原生微服务 + AI 集成实验室”。它基于 Google Online Boutique 的多语言微服务样例继续改造，但核心目标已经从”电商 demo”升级为”可展示工程能力的微服务改造样板”：AI Shopping Assistant、本地 Ollama、JSON catalog fallback、Kubernetes 部署、多语言服务测试和 CI 基线都放在同一个仓库里。
+
+> **Based on [GoogleCloudPlatform/microservices-demo](https://github.com/GoogleCloudPlatform/microservices-demo) (Online Boutique), extended with:**
+> AI Shopping Assistant (Gemini/Ollama) · Local Ollama Demo · JSON Catalog Fallback · Kustomize Components · `ubuntu-latest` CI · Namespace Migration
 
 <p align="center">
   <img src="https://img.shields.io/badge/AI-Gemini%20%7C%20Ollama-0b66d7" alt="AI backends" />
@@ -13,7 +16,8 @@
   <img src="https://img.shields.io/badge/Services-Go%20Python%20Node%20Java%20C%23-f59e0b" alt="languages" />
   <img src="https://img.shields.io/badge/CI-ubuntu--latest-64748b" alt="quick ci" />
   <br/>
-  <img src="https://github.com/however-yir/however-microservices-lab/actions/workflows/ci-main.yaml/badge.svg" alt="CI">
+  <img src="https://github.com/however-yir/however-microservices-lab/actions/workflows/quick-ci.yaml/badge.svg" alt="Quick CI">
+  <img src="https://github.com/however-yir/however-microservices-lab/actions/workflows/shoppingassistant-quality-ci.yaml/badge.svg" alt="AI Assistant Quality">
 </p>
 
 ## 首屏重点
@@ -137,13 +141,20 @@ flowchart LR
 
 完整证据链见 [docs/diff-from-upstream.md](docs/diff-from-upstream.md)。摘要如下：
 
+| 维度 | 上游 (Google Online Boutique) | however 改造 |
+|---|---|---|
+| 定位 | 电商微服务 demo | 云原生微服务 + AI 集成实验室 |
+| AI 服务 | 无 | `shoppingassistantservice`（Gemini/Ollama 切换） |
+| 本地演示 | 无 | `make local-demo`（Redis + Ollama + JSON catalog） |
+| 向量检索 | 无 | AlloyDB / JSON catalog fallback |
+| Java 包名 | `hipstershop.*` | `com.however.microservices.*` |
+| CI | 仅 self-hosted + GKE | 新增 `ubuntu-latest` 快速多语言 CI |
+| 部署路径 | 原生 manifests + Skaffold | + Kustomize components + Helm + Terraform |
+
 - 明确保留 Google Online Boutique 的 Apache-2.0 来源和多语言微服务基线。
-- 迁移 however 命名空间、Java 包名、Gradle group、Node package 元信息和仓库 profile。
-- 新增 AI Shopping Assistant，接入 frontend，并提供模型后端切换。
-- 支持 Gemini/Ollama、AlloyDB/JSON catalog fallback。
 - 新增本地 Redis + Ollama + JSON 演示路径。
 - 增强 Kustomize components、Helm/Terraform 文档、kind smoke、loadgenerator 性能基线。
-- 新增 `ubuntu-latest` 快速多语言 CI，并清理旧式 `::set-env`。
+- 清理旧式 `::set-env`，改用 `$GITHUB_ENV`。
 
 ## 质量与 CI
 

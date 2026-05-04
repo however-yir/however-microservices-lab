@@ -37,7 +37,7 @@
 
 ## 矩阵角色
 
-`however-microservices-lab` 是 however-yir AI 工程作品矩阵中的“云原生微服务 + AI 集成实验室”，负责展示多语言微服务、Kubernetes/Skaffold/Kustomize、gRPC/HTTP、AI Shopping Assistant、Ollama/Gemini 切换和本地降级链路。完整项目矩阵见 [docs/project-matrix.md](docs/project-matrix.md)，面试讲解提纲见 [docs/interview-notes.md](docs/interview-notes.md)。
+`however-microservices-lab` 是 however-yir AI 工程作品矩阵中的“云原生微服务 + AI 集成实验室”，负责展示多语言微服务、Kubernetes/Skaffold/Kustomize、gRPC/HTTP、AI Shopping Assistant、Ollama/Gemini 切换和本地降级链路。完整项目矩阵见 [docs/project-matrix.md](docs/project-matrix.md)。
 
 ## 快速开始
 

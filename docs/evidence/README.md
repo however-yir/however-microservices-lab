@@ -9,6 +9,7 @@ This pack collects the shortest public proof path for reviewing the cloud-native
 - Quick CI: `.github/workflows/quick-ci.yaml`
 - SBOM workflow: `.github/workflows/sbom-ci.yaml`
 - Image scan workflow: `.github/workflows/security-image-scan-ci.yaml`
+- Baseline release: `AI Matrix Baseline 2026.05`
 - Release: `v0.1.0 - AI Microservices Lab Baseline`
 
 ## Product And Architecture Evidence
@@ -29,4 +30,3 @@ This pack collects the shortest public proof path for reviewing the cloud-native
 - Review Kubernetes/Skaffold documentation for deployment evidence.
 - Review SBOM and image scan workflows.
 - Open the latest GitHub Actions run and confirm the core workflows are green.
-

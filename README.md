@@ -28,6 +28,7 @@
 | 本地 Ollama 演示 | `make local-demo` | 本地 Redis + Ollama + JSON 商品数据，快速验证 `MODEL_PROVIDER=ollama` 和 `VECTORSTORE_BACKEND=json` |
 | Kubernetes 部署 | `skaffold run` / `make check-e2e` | 原生 manifests、Kustomize components、kind smoke、Skaffold 构建部署 |
 | 多语言工程矩阵 | Go / Python / Node.js / Java / C# | 保留电商主链路，同时补 AI 服务、质量测试和 CI 现代化 |
+| 证据索引 | `docs/evidence/README.md` | 运行路径、截图、CI、SBOM、镜像扫描和发布证据 |
 
 ![however architecture](docs/img/however-architecture.svg)
 

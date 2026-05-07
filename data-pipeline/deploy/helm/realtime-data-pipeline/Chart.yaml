@@ -1,0 +1,14 @@
+apiVersion: v2
+name: realtime-data-pipeline
+description: Enterprise-grade Helm chart for realtime data pipeline with Flink, Kafka Connect, exporters, and monitoring
+type: application
+version: 0.2.0
+appVersion: "1.0.0"
+keywords:
+  - flink
+  - kafka
+  - realtime
+  - streaming
+  - monitoring
+maintainers:
+  - name: realtime-data-pipeline-team

@@ -1,0 +1,76 @@
+{{- if .Values.connectMonitorExporter.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "realtime-data-pipeline.fullname" . }}-connect-monitor-exporter
+  labels:
+    {{- include "realtime-data-pipeline.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.connectMonitorExporter.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: connect-monitor-exporter
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: connect-monitor-exporter
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        {{- include "realtime-data-pipeline.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: connect-monitor-exporter
+          image: {{ .Values.connectMonitorExporter.image }}
+          imagePullPolicy: {{ .Values.connectMonitorExporter.imagePullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - >
+              pip install --no-cache-dir requests==2.32.3 prometheus-client==0.20.0 &&
+              python -u /app/connect_exporter.py
+          env:
+            - name: METRICS_PORT
+              value: {{ .Values.connectMonitorExporter.service.port | quote }}
+            {{- range $k, $v := .Values.connectMonitorExporter.env }}
+            - name: {{ $k }}
+              value: {{ $v | quote }}
+            {{- end }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.connectMonitorExporter.service.port }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: exporter-script
+              mountPath: /app/connect_exporter.py
+              subPath: connect_exporter.py
+      volumes:
+        - name: exporter-script
+          configMap:
+            name: {{ include "realtime-data-pipeline.fullname" . }}-connect-monitor-script
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "realtime-data-pipeline.fullname" . }}-connect-monitor-script
+  labels:
+    {{- include "realtime-data-pipeline.labels" . | nindent 4 }}
+data:
+  connect_exporter.py: |
+{{ .Files.Get "scripts/connect_exporter.py" | indent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "realtime-data-pipeline.fullname" . }}-connect-monitor-exporter
+  labels:
+    {{- include "realtime-data-pipeline.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/component: connect-monitor-exporter
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - port: {{ .Values.connectMonitorExporter.service.port }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+{{- end }}

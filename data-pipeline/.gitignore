@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Java
+**/target/
+
+# Runtime
+logs/
+*.log
+.env
+
+# Local data
+.elasticsearch/
+.qdrant/
+.grafana/

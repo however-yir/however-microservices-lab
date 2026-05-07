@@ -1,0 +1,96 @@
+nameOverride: ""
+fullnameOverride: ""
+
+commonLabels:
+  app.kubernetes.io/part-of: realtime-data-pipeline
+  app.kubernetes.io/managed-by: helm
+
+# Global settings
+global:
+  kafkaBootstrapServers: kafka:9092
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# Flink job deployment (Item 35)
+flinkJobManager:
+  enabled: false
+  image: flink:1.18.1-scala_2.12-java11
+  replicas: 1
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+flinkTaskManager:
+  enabled: false
+  image: flink:1.18.1-scala_2.12-java11
+  replicas: 1
+  taskSlots: 4
+  resources:
+    requests:
+      memory: "2Gi"
+      cpu: "1000m"
+    limits:
+      memory: "4Gi"
+      cpu: "2000m"
+
+# Kafka Connect deployment
+kafkaConnect:
+  enabled: false
+  image: debezium/connect:2.7
+  replicas: 1
+  env:
+    BOOTSTRAP_SERVERS: kafka:9092
+
+# Exporters
+streamMetricsExporter:
+  enabled: true
+  image: python:3.11-slim
+  imagePullPolicy: IfNotPresent
+  replicaCount: 1
+  service:
+    port: 9108
+    type: ClusterIP
+  env:
+    KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    KAFKA_EVENT_TOPIC: user_behavior_events
+    KAFKA_METRIC_TOPIC: realtime_stats_metrics
+    KAFKA_GROUP_ID: stream-metrics-exporter
+    UV_WINDOW_SECONDS: "300"
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+connectMonitorExporter:
+  enabled: true
+  image: python:3.11-slim
+  imagePullPolicy: IfNotPresent
+  replicaCount: 1
+  service:
+    port: 9310
+    type: ClusterIP
+  env:
+    KAFKA_CONNECT_URL: http://kafka-connect:8083
+    POLL_INTERVAL_SECONDS: "15"
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+# ServiceMonitor for Prometheus Operator integration
+serviceMonitor:
+  enabled: false
+  interval: 15s
+  labels: {}
+
+resources: {}

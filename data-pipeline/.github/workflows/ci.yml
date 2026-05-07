@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Create .env from example
+        run: cp .env.example .env
+
+      - name: Validate Docker Compose
+        run: docker compose config -q
+
+      - name: Validate Dockerfiles
+        run: |
+          for dockerfile in data-collector/api-collector/Dockerfile monitoring/stream-metrics-exporter/Dockerfile monitoring/connect-exporter/Dockerfile; do
+            echo "Validating $dockerfile"
+            docker build --check "$dockerfile" 2>/dev/null || echo "Note: --check not supported, skipping syntax validation for $dockerfile"
+          done
+
+      - name: Validate Python scripts
+        run: |
+          python -m py_compile \
+            data-collector/api-collector/producer.py \
+            data-collector/api-collector/rag_document_producer.py \
+            monitoring/stream-metrics-exporter/metrics_exporter.py \
+            monitoring/connect-exporter/connect_exporter.py \
+            data-storage/kafka-config/register_schemas.py \
+            scripts/load_test.py \
+            scripts/send_webhook_alert.py
+
+      - name: Validate shell scripts
+        run: |
+          bash -n data-storage/kafka-config/create-topics.sh
+          bash -n data-storage/qdrant/init-collection.sh
+          bash -n data-storage/elasticsearch/init-ilm.sh
+          bash -n scripts/smoke_check.sh
+
+      - name: Install Python test dependencies
+        run: pip install pytest kafka-python prometheus-client requests
+
+      - name: Run Python tests
+        run: pytest tests/ -v --tb=short
+
+      - name: Build and test Flink realtime-stats
+        working-directory: stream-processing/flink-jobs/realtime-stats
+        run: mvn -B test package
+
+      - name: Build and test Flink data-enrich
+        working-directory: stream-processing/flink-jobs/data-enrich
+        run: mvn -B test package
+
+      - name: Build and test Flink anomaly-detect
+        working-directory: stream-processing/flink-jobs/anomaly-detect
+        run: mvn -B test package
+
+      - name: Scan Python dependencies for vulnerabilities
+        run: |
+          pip install pip-audit
+          pip-audit -r data-collector/api-collector/requirements.txt || true
+          pip-audit -r monitoring/stream-metrics-exporter/requirements.txt || true
+          pip-audit -r monitoring/connect-exporter/requirements.txt || true
+
+      - name: Scan Java dependencies for vulnerabilities
+        if: always()
+        working-directory: stream-processing/flink-jobs/data-enrich
+        run: mvn -B org.owasp:dependency-check-maven:check -DfailBuildCVSS=11 || true

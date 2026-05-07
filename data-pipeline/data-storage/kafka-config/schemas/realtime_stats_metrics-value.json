@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RealtimeStatsMetric",
+  "type": "object",
+  "required": ["metric_name", "value", "event_time"],
+  "properties": {
+    "record_type": {"type": "string"},
+    "job_name": {"type": "string"},
+    "schema_version": {"type": "string"},
+    "metric_name": {"type": "string"},
+    "metric_type": {"type": "string"},
+    "event_type": {"type": "string"},
+    "tenant_id": {"type": "string"},
+    "value": {"type": "number"},
+    "window_start": {"type": "integer"},
+    "window_end": {"type": "integer"},
+    "event_time": {"type": "string", "format": "date-time"},
+    "topic": {"type": "string"},
+    "partition": {"type": "integer"},
+    "offset": {"type": "integer"}
+  },
+  "additionalProperties": true
+}

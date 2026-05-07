@@ -1,0 +1,14 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: webhook-default
+  group_wait: 30s
+  group_interval: 1m
+  repeat_interval: 10m
+
+receivers:
+  - name: webhook-default
+    webhook_configs:
+      - url: "https://open.feishu.cn/open-apis/bot/v2/hook/replace_with_your_real_token"
+        send_resolved: true

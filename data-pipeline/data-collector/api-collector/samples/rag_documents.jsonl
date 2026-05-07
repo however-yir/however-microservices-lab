@@ -1,0 +1,3 @@
+{"doc_id":"yourrag-knowledge-001","source":"yourrag","content":"RAG系统的核心流程包含：文档采集、文本清洗、语义分块、向量化、索引写入、检索增强生成。","metadata":{"lang":"zh","domain":"rag"}}
+{"doc_id":"lzkb-knowledge-002","source":"LZKB","content":"知识库增量更新需要支持CDC事件触发，避免全量重建带来的高成本和索引延迟。","metadata":{"lang":"zh","domain":"knowledge-base"}}
+{"doc_id":"realtime-pipeline-003","source":"realtime-data-pipeline","content":"Kafka + Flink enables low-latency ETL, while Qdrant stores dense vectors for semantic retrieval in downstream RAG applications.","metadata":{"lang":"en","domain":"streaming"}}

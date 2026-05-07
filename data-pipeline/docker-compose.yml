@@ -1,0 +1,424 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.3
+    container_name: rdp-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - data-plane
+
+  # PRODUCTION NOTE: Deploy 3+ Kafka brokers with:
+  # KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+  # KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+  # KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+  # min.insync.replicas=2 on all business topics
+  kafka:
+    image: confluentinc/cp-kafka:7.5.3
+    container_name: rdp-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    networks:
+      - data-plane
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.3
+    container_name: rdp-kafka-init
+    depends_on:
+      - kafka
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      cub kafka-ready -b kafka:29092 1 60
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic user_behavior_events --partitions 6 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic rag_raw_documents --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic rag_processed_chunks --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic cdc_user_profile --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic app_logs --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic realtime_stats_metrics --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic dlq_realtime_stats --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic dlq_anomaly_detect --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic dlq_data_enrich --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic anomaly_alerts --partitions 3 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic _connect_configs --partitions 1 --replication-factor 1 --config cleanup.policy=compact
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic _connect_offsets --partitions 25 --replication-factor 1 --config cleanup.policy=compact
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic _connect_statuses --partitions 5 --replication-factor 1 --config cleanup.policy=compact
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic schema-changes.cdc --partitions 1 --replication-factor 1 --config cleanup.policy=compact
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic cdc.public.user_profile --partitions 3 --replication-factor 1
+      echo "[OK] Kafka topics initialized."
+    networks:
+      - data-plane
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.3
+    container_name: rdp-schema-registry
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    ports:
+      - "8086:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka:29092
+    networks:
+      - data-plane
+
+  schema-registry-init:
+    image: python:3.11-slim
+    container_name: rdp-schema-registry-init
+    depends_on:
+      schema-registry:
+        condition: service_started
+    working_dir: /app
+    command: python register_schemas.py
+    environment:
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      SCHEMA_DIR: /app/schemas
+    volumes:
+      - ./data-storage/kafka-config/register_schemas.py:/app/register_schemas.py:ro
+      - ./data-storage/kafka-config/schemas:/app/schemas:ro
+    networks:
+      - data-plane
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: rdp-kafka-ui
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+    networks:
+      - data-plane
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.7.0
+    container_name: rdp-kafka-exporter
+    command:
+      - --kafka.server=kafka:29092
+    depends_on:
+      - kafka
+    ports:
+      - "9308:9308"
+    networks:
+      - data-plane
+      - monitoring
+
+  postgres:
+    image: debezium/postgres:16
+    container_name: rdp-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+    command:
+      [
+        "postgres",
+        "-c",
+        "wal_level=logical",
+        "-c",
+        "max_wal_senders=10",
+        "-c",
+        "max_replication_slots=10"
+      ]
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./data-collector/db-cdc/initdb:/docker-entrypoint-initdb.d:ro
+    networks:
+      - data-plane
+
+  kafka-connect:
+    image: debezium/connect:2.7
+    container_name: rdp-kafka-connect
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_started
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: connect-cluster-1
+      CONFIG_STORAGE_TOPIC: _connect_configs
+      OFFSET_STORAGE_TOPIC: _connect_offsets
+      STATUS_STORAGE_TOPIC: _connect_statuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_PLUGIN_PATH: /kafka/connect,/usr/share/java
+      REST_ADVERTISED_HOST_NAME: kafka-connect
+    networks:
+      - data-plane
+
+  kafka-connect-init:
+    image: curlimages/curl:8.7.1
+    container_name: rdp-kafka-connect-init
+    depends_on:
+      kafka-connect:
+        condition: service_started
+    volumes:
+      - ./data-collector/db-cdc/postgres-connector-config.json:/config/postgres-connector-config.json:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      until curl -s http://kafka-connect:8083/ | grep -q '"version"'; do
+        echo "[WAIT] Kafka Connect is not ready yet...";
+        sleep 3;
+      done
+      curl -sS -X PUT \
+        -H "Content-Type: application/json" \
+        http://kafka-connect:8083/connectors/postgres-cdc-user-profile/config \
+        --data @/config/postgres-connector-config.json
+      echo "[OK] Debezium connector postgres-cdc-user-profile is up."
+    networks:
+      - data-plane
+
+  flink-jobmanager:
+    image: flink:1.18.1-scala_2.12-java11
+    container_name: rdp-flink-jobmanager
+    command: jobmanager
+    ports:
+      - "8081:8081"
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        state.backend: rocksdb
+        state.checkpoints.dir: file:///opt/flink/checkpoints
+        state.savepoints.dir: file:///opt/flink/savepoints
+        execution.checkpointing.interval: 10s
+        execution.checkpointing.mode: EXACTLY_ONCE
+        execution.checkpointing.min-pause: 5s
+        # PRODUCTION: Enable HA via ZooKeeper or Kubernetes
+        # high-availability: zookeeper
+        # high-availability.zookeeper.quorum: zookeeper:2181
+        # high-availability.storageDir: hdfs:///flink/ha
+    volumes:
+      - ./stream-processing/flink-jobs/realtime-stats/target:/opt/flink/usrlib
+    networks:
+      - control-plane
+
+  flink-taskmanager:
+    image: flink:1.18.1-scala_2.12-java11
+    container_name: rdp-flink-taskmanager
+    command: taskmanager
+    depends_on:
+      - flink-jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 4
+        state.backend: rocksdb
+        state.checkpoints.dir: file:///opt/flink/checkpoints
+        state.savepoints.dir: file:///opt/flink/savepoints
+        execution.checkpointing.interval: 10s
+        execution.checkpointing.mode: EXACTLY_ONCE
+        execution.checkpointing.min-pause: 5s
+    networks:
+      - control-plane
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: rdp-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=${ES_SECURITY_ENABLED:-false}
+      - xpack.security.transport.ssl.enabled=${ES_SECURITY_ENABLED:-false}
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - "9200:9200"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    networks:
+      - data-plane
+
+  elasticsearch-init:
+    image: curlimages/curl:8.7.1
+    container_name: rdp-elasticsearch-init
+    depends_on:
+      elasticsearch:
+        condition: service_started
+    volumes:
+      - ./data-storage/elasticsearch/ilm-policy-user-events.json:/config/ilm-policy-user-events.json:ro
+      - ./data-storage/elasticsearch/user-events-index-template.json:/config/user-events-index-template.json:ro
+      - ./data-storage/elasticsearch/init-ilm.sh:/config/init-ilm.sh:ro
+    entrypoint: ["/bin/sh", "/config/init-ilm.sh"]
+    networks:
+      - data-plane
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    container_name: rdp-kibana
+    depends_on:
+      - elasticsearch
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - data-plane
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.2
+    container_name: rdp-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - data-plane
+
+  qdrant-init:
+    image: curlimages/curl:8.7.1
+    container_name: rdp-qdrant-init
+    depends_on:
+      qdrant:
+        condition: service_started
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      until curl -s http://qdrant:6333/healthz >/dev/null; do
+        echo "[WAIT] Qdrant is not ready yet...";
+        sleep 2;
+      done
+      curl -sS -X PUT \
+        http://qdrant:6333/collections/rag_documents \
+        -H "Content-Type: application/json" \
+        -d '{"vectors":{"size":128,"distance":"Cosine"}}'
+      echo "[OK] Qdrant collection rag_documents is ready."
+    networks:
+      - data-plane
+
+  stream-metrics-exporter:
+    image: python:3.11-slim
+    container_name: rdp-stream-metrics-exporter
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    working_dir: /app
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+      python -u metrics_exporter.py"
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_EVENT_TOPIC: user_behavior_events
+      KAFKA_METRIC_TOPIC: realtime_stats_metrics
+      KAFKA_GROUP_ID: stream-metrics-exporter
+      METRICS_PORT: 9108
+      UV_WINDOW_SECONDS: 300
+    volumes:
+      - ./monitoring/stream-metrics-exporter:/app:ro
+    ports:
+      - "9108:9108"
+    networks:
+      - data-plane
+      - monitoring
+
+  connect-monitor-exporter:
+    image: python:3.11-slim
+    container_name: rdp-connect-monitor-exporter
+    depends_on:
+      kafka-connect:
+        condition: service_started
+    working_dir: /app
+    command: >
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+      python -u connect_exporter.py"
+    environment:
+      KAFKA_CONNECT_URL: http://kafka-connect:8083
+      METRICS_PORT: 9310
+      POLL_INTERVAL_SECONDS: 15
+    volumes:
+      - ./monitoring/connect-exporter:/app:ro
+    ports:
+      - "9310:9310"
+    networks:
+      - data-plane
+      - monitoring
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: rdp-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerting/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+    networks:
+      - monitoring
+      - data-plane
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: rdp-alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./monitoring/alerting/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: rdp-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:?GF_ADMIN_PASSWORD is required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - elasticsearch
+    networks:
+      - monitoring
+      - data-plane
+
+networks:
+  data-plane:
+    driver: bridge
+  control-plane:
+    driver: bridge
+  monitoring:
+    driver: bridge
+
+volumes:
+  es-data:
+  postgres-data:
+  qdrant-data:
+  grafana-data:

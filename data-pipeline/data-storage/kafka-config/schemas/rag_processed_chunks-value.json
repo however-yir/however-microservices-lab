@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RagProcessedChunk",
+  "type": "object",
+  "required": ["point_id", "doc_id", "chunk_id", "chunk_text", "vector"],
+  "properties": {
+    "point_id": {"type": "string"},
+    "doc_id": {"type": "string"},
+    "chunk_id": {"type": "string"},
+    "chunk_index": {"type": "integer"},
+    "chunk_text": {"type": "string"},
+    "source": {"type": "string"},
+    "event_time": {"type": "string", "format": "date-time"},
+    "schema_version": {"type": "string"},
+    "tenant_id": {"type": "string"},
+    "vector": {
+      "type": "array",
+      "items": {"type": "number"}
+    },
+    "metadata": {"type": "object"}
+  },
+  "additionalProperties": true
+}

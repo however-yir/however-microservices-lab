@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: realtime-platform
+    orgId: 1
+    folder: Realtime Platform
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

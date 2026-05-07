@@ -61,4 +61,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Validate docker-compose.yml
-        run: docker compose -f data-pipeline/docker-compose.yml config --quiet
+        run: |
+          cp data-pipeline/.env.example data-pipeline/.env
+          docker compose -f data-pipeline/docker-compose.yml --env-file data-pipeline/.env config --quiet

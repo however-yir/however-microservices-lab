@@ -4,20 +4,22 @@
   <img src="docs/img/however-logo.svg" width="340" alt="however logo" />
 </p>
 
-`however-microservices-lab` 是一个”云原生微服务 + AI 集成实验室”。它基于 Google Online Boutique 的多语言微服务样例继续改造，但核心目标已经从”电商 demo”升级为”可展示工程能力的微服务改造样板”：AI Shopping Assistant、本地 Ollama、JSON catalog fallback、Kubernetes 部署、多语言服务测试和 CI 基线都放在同一个仓库里。
+`however-microservices-lab` 是一个"云原生微服务 + AI 集成实验室"。它基于 Google Online Boutique 的多语言微服务样例继续改造，但核心目标已经从"电商 demo"升级为"可展示工程能力的微服务改造样板"：AI Shopping Assistant、本地 Ollama、JSON catalog fallback、实时数据管道、Kubernetes 部署、多语言服务测试和 CI 基线都放在同一个仓库里。
 
 > **Based on [GoogleCloudPlatform/microservices-demo](https://github.com/GoogleCloudPlatform/microservices-demo) (Online Boutique), extended with:**
-> AI Shopping Assistant (Gemini/Ollama) · Local Ollama Demo · JSON Catalog Fallback · Kustomize Components · `ubuntu-latest` CI · Namespace Migration
+> AI Shopping Assistant (Gemini/Ollama) · Local Ollama Demo · JSON Catalog Fallback · Realtime Data Pipeline (Kafka + Flink) · Kustomize Components · `ubuntu-latest` CI · Namespace Migration
 
 <p align="center">
   <img src="https://img.shields.io/badge/AI-Gemini%20%7C%20Ollama-0b66d7" alt="AI backends" />
   <img src="https://img.shields.io/badge/Runtime-Kubernetes-22c55e" alt="Kubernetes" />
   <img src="https://img.shields.io/badge/Protocols-gRPC%20%2B%20HTTP-f59e0b" alt="Protocols" />
   <img src="https://img.shields.io/badge/Services-Go%20Python%20Node%20Java%20C%23-f59e0b" alt="languages" />
+  <img src="https://img.shields.io/badge/Data-Kafka%20%2B%20Flink-8b5cf6" alt="Data Pipeline" />
   <img src="https://img.shields.io/badge/CI-ubuntu--latest-64748b" alt="quick ci" />
   <br/>
   <img src="https://github.com/however-yir/however-microservices-lab/actions/workflows/quick-ci.yaml/badge.svg" alt="Quick CI">
   <img src="https://github.com/however-yir/however-microservices-lab/actions/workflows/shoppingassistant-quality-ci.yaml/badge.svg" alt="AI Assistant Quality">
+  <img src="https://github.com/however-yir/however-microservices-lab/actions/workflows/data-pipeline-ci.yaml/badge.svg" alt="Data Pipeline CI">
 </p>
 
 ## 首屏重点
@@ -25,6 +27,7 @@
 | 能力 | 入口 | 说明 |
 |---|---|---|
 | AI Shopping Assistant | `src/shoppingassistantservice` + `/assistant` | Python Flask 助手服务接入 Go frontend，支持文本/图片输入、商品 ID 推荐、健康检查、指标、限流、熔断和降级 |
+| 实时数据管道 | `data-pipeline/` | Kafka + Flink 实时流处理，包含数据采集、CDC、窗口聚合、异常检测、Prometheus/Grafana 全链路监控 |
 | 本地 Ollama 演示 | `make local-demo` | 本地 Redis + Ollama + JSON 商品数据，快速验证 `MODEL_PROVIDER=ollama` 和 `VECTORSTORE_BACKEND=json` |
 | Kubernetes 部署 | `skaffold run` / `make check-e2e` | 原生 manifests、Kustomize components、kind smoke、Skaffold 构建部署 |
 | 多语言工程矩阵 | Go / Python / Node.js / Java / C# | 保留电商主链路，同时补 AI 服务、质量测试和 CI 现代化 |
@@ -38,7 +41,7 @@
 
 ## 矩阵角色
 
-`however-microservices-lab` 是 however-yir AI 工程作品矩阵中的“云原生微服务 + AI 集成实验室”，负责展示多语言微服务、Kubernetes/Skaffold/Kustomize、gRPC/HTTP、AI Shopping Assistant、Ollama/Gemini 切换和本地降级链路。完整项目矩阵见 [docs/project-matrix.md](docs/project-matrix.md)。
+`however-microservices-lab` 是 however-yir AI 工程作品矩阵中的"云原生微服务 + AI 集成实验室"，负责展示多语言微服务、Kubernetes/Skaffold/Kustomize、gRPC/HTTP、实时数据管道（Kafka + Flink）、AI Shopping Assistant、Ollama/Gemini 切换和本地降级链路。完整项目矩阵见 [docs/project-matrix.md](docs/project-matrix.md)。
 
 ## 快速开始
 
@@ -84,6 +87,15 @@ kubectl port-forward deployment/frontend 8080:8080
 
 访问 `http://127.0.0.1:8080`。
 
+### 4. 实时数据管道
+
+```bash
+cd data-pipeline
+docker compose up -d
+```
+
+启动 23 个服务（Kafka + Flink + ES + Qdrant + Prometheus + Grafana），详情见 [data-pipeline/README.md](data-pipeline/README.md)。
+
 ## 多语言服务矩阵
 
 | 服务 | 语言 | 职责 | 改造重点 |
@@ -100,6 +112,26 @@ kubectl port-forward deployment/frontend 8080:8080
 | `recommendationservice` | Python | 商品推荐 | Python gRPC 服务 |
 | `adservice` | Java | 广告推荐 | `com.however.microservices` 包迁移、Gradle/PMD |
 | `loadgenerator` | Python | 性能流量 | Locust baseline |
+
+## 数据管道 (Data Pipeline)
+
+`data-pipeline/` 目录包含完整的实时数据流处理平台，与微服务层互补：
+
+| 组件 | 技术 | 说明 |
+|---|---|---|
+| 数据采集 | Python Kafka Producer, Debezium CDC | API 事件采集、数据库变更捕获 |
+| 流处理 | Apache Flink 1.18 (Java) | 3 个作业：实时 PV/UV 统计、数据富化写入 Qdrant、CEP 异常检测 |
+| 存储 | Kafka + Elasticsearch + Qdrant + PostgreSQL | 消息队列、全文检索、向量存储、关系数据库 |
+| 监控 | Prometheus + Grafana + Alertmanager | 16 条告警规则、预置 Grafana Dashboard |
+| 部署 | Docker Compose + Helm | 本地 23 服务编排、Kubernetes Helm Chart |
+
+```bash
+cd data-pipeline
+# 启动全栈
+docker compose up -d
+# 运行 smoke tests
+pip install -r requirements-dev.txt && pytest tests/test_smoke.py -v
+```
 
 ## AI 助手设计
 
@@ -132,6 +164,7 @@ flowchart LR
 | 路径 | 入口 | 场景 |
 |---|---|---|
 | Local demo | `make local-demo` | 本机 Redis/Ollama/JSON 助手演示 |
+| Data pipeline | `cd data-pipeline && docker compose up` | 本地 Kafka + Flink + ES + Grafana 全栈 |
 | Raw manifests | `kubernetes-manifests/` | 最小 Kubernetes 部署 |
 | Kustomize | `kustomize/components/*` | AI assistant、local endpoints、network policies、cloud operations 等组合 |
 | Skaffold | `skaffold.yaml` | 本地或 GKE 构建部署 |
@@ -144,16 +177,18 @@ flowchart LR
 
 | 维度 | 上游 (Google Online Boutique) | however 改造 |
 |---|---|---|
-| 定位 | 电商微服务 demo | 云原生微服务 + AI 集成实验室 |
+| 定位 | 电商微服务 demo | 云原生微服务 + AI 集成 + 实时数据管道实验室 |
 | AI 服务 | 无 | `shoppingassistantservice`（Gemini/Ollama 切换） |
+| 数据管道 | 无 | Kafka + Flink + ES + Qdrant 全链路实时处理 |
 | 本地演示 | 无 | `make local-demo`（Redis + Ollama + JSON catalog） |
 | 向量检索 | 无 | AlloyDB / JSON catalog fallback |
 | Java 包名 | `hipstershop.*` | `com.however.microservices.*` |
-| CI | 仅 self-hosted + GKE | 新增 `ubuntu-latest` 快速多语言 CI |
+| CI | 仅 self-hosted + GKE | 新增 `ubuntu-latest` 快速多语言 CI + Data Pipeline CI |
 | 部署路径 | 原生 manifests + Skaffold | + Kustomize components + Helm + Terraform |
 
 - 明确保留 Google Online Boutique 的 Apache-2.0 来源和多语言微服务基线。
 - 新增本地 Redis + Ollama + JSON 演示路径。
+- 新增实时数据管道（Kafka + Flink + ES + Qdrant + Prometheus/Grafana）。
 - 增强 Kustomize components、Helm/Terraform 文档、kind smoke、loadgenerator 性能基线。
 - 清理旧式 `::set-env`，改用 `$GITHUB_ENV`。
 
@@ -178,6 +213,7 @@ CI 入口：
 
 - [.github/workflows/quick-ci.yaml](.github/workflows/quick-ci.yaml)：Go、Node、Python、Java 基础测试，运行在 `ubuntu-latest`。
 - [.github/workflows/shoppingassistant-quality-ci.yaml](.github/workflows/shoppingassistant-quality-ci.yaml)：AI 助手 ruff/mypy/pytest。
+- [.github/workflows/data-pipeline-ci.yaml](.github/workflows/data-pipeline-ci.yaml)：Flink Java 作业 Maven 构建+测试、Python smoke tests、docker-compose 校验。
 - [.github/workflows/repo-contract-ci.yml](.github/workflows/repo-contract-ci.yml)：仓库质量契约。
 
 ## 性能基线
@@ -205,6 +241,7 @@ kubectl logs -l app=loadgenerator -f
 - Kubernetes/Skaffold/Kustomize 部署能力
 - Gemini/Ollama AI 服务集成能力
 - JSON fallback 和错误降级质量能力
+- 实时数据管道（Kafka + Flink）端到端能力
 
 Release note 草稿见 [docs/releasing/ai-microservices-lab-baseline.md](docs/releasing/ai-microservices-lab-baseline.md)。
 

@@ -1,0 +1,155 @@
+groups:
+  - name: stream-platform-alerts
+    rules:
+      - alert: FlinkJobManagerDown
+        expr: up{job="flink-jobmanager"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Flink JobManager 不可用"
+          description: "flink-jobmanager 在 1 分钟内无可用实例。"
+
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus 不可用"
+          description: "Prometheus 采集服务不可达。"
+
+      - alert: KafkaConsumerLagHigh
+        expr: sum(kafka_consumergroup_lag) > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka 消费堆积偏高"
+          description: "consumer group lag 连续 2 分钟超过 1000，请排查消费侧处理能力。"
+
+      - alert: BusinessConversionDrop
+        expr: max_over_time(rdp_conversion_rate[10m]) < 1 and sum(increase(rdp_events_total{event_type="view"}[10m])) > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "业务转化率持续偏低"
+          description: "最近 10 分钟浏览量较高但转化率低于 1%，建议检查推荐链路和下单流程。"
+
+      - alert: BusinessAnomalySpike
+        expr: sum(increase(rdp_anomaly_events_total[5m])) > 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "异常事件短时激增"
+          description: "5 分钟异常事件超过阈值，请立即排查风控和上游数据质量。"
+
+      - alert: KafkaConnectExporterDown
+        expr: up{job="connect-monitor-exporter"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka Connect 监控不可用"
+          description: "connect-monitor-exporter 连续 2 分钟不可达，无法获取任务状态。"
+
+      - alert: KafkaConnectTaskNotRunning
+        expr: rdp_connect_task_status == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka Connect 任务异常"
+          description: "Connector {{ $labels.connector }} task {{ $labels.task_id }} 连续 3 分钟未处于 RUNNING。"
+
+      - alert: EventParseFailureHigh
+        expr: sum(increase(rdp_event_parse_failures_total[10m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "事件解析失败偏高"
+          description: "最近 10 分钟解析失败事件超过 10 条，建议检查 schema 与上游数据质量。"
+
+      - alert: IngestionSuccessRateLow
+        expr: 100 * (1 - (sum(increase(rdp_event_parse_failures_total[10m])) / clamp_min(sum(increase(rdp_events_total[10m])) + sum(increase(rdp_event_parse_failures_total[10m])), 1))) < 99
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "数据摄取成功率低于 SLO"
+          description: "最近 10 分钟摄取成功率低于 99%。"
+
+      - alert: PipelineLatencyP95High
+        expr: histogram_quantile(0.95, sum(rate(rdp_pipeline_latency_seconds_bucket[5m])) by (le)) > 5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "端到端延迟 P95 超阈值"
+          description: "最近 5 分钟的摄取端到端延迟 P95 超过 5 秒。"
+
+      - alert: FlinkCheckpointFailures
+        expr: flink_job_numberOfFailedCheckpoints > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Flink Checkpoint 持续失败"
+          description: "Flink job checkpoint 连续失败超过 5 分钟，请检查 state backend 和存储。"
+
+      - alert: FlinkCheckpointDurationHigh
+        expr: flink_job_lastCheckpointDuration > 30000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Flink Checkpoint 耗时过长"
+          description: "checkpoint 耗时超过 30 秒（阈值为间隔的 80%），可能影响处理延迟。"
+
+      - alert: KafkaConsumerLagByGroup
+        expr: sum(kafka_consumergroup_lag) by (consumergroup) > 5000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka Consumer Group {{ $labels.consumergroup }} 堆积严重"
+          description: "Consumer group {{ $labels.consumergroup }} lag 超过 5000，持续 5 分钟。"
+
+      - alert: ElasticsearchDown
+        expr: up{job="elasticsearch"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Elasticsearch 不可用"
+          description: "Elasticsearch 连续 2 分钟不可达。"
+
+      - alert: QdrantDown
+        expr: up{job="qdrant"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Qdrant 不可用"
+          description: "Qdrant 向量数据库连续 2 分钟不可达。"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "磁盘空间不足"
+          description: "根分区可用空间低于 10%。"
+
+      - alert: CriticalAlertRecoverySlow
+        expr: sum(ALERTS{alertstate="firing", severity="critical"}) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "关键告警恢复时间超标"
+          description: "存在 critical 告警持续超过 15 分钟未恢复，建议启动应急流程。"

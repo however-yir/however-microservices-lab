@@ -1,0 +1,54 @@
+# 2026Q1 Activity Log - realtime-data-pipeline
+
+This log materializes planned 2026Q1 commit cadence into concrete commits.
+
+- [C01] 2026-01-03 初始化 :: chore(init): bootstrap baseline part 1
+- [C02] 2026-01-07 初始化 :: chore(init): bootstrap baseline part 2
+- [C03] 2026-01-11 初始化 :: chore(init): bootstrap baseline part 3
+- [C04] 2026-01-15 初始化 :: chore(init): bootstrap baseline part 4
+- [C05] 2026-01-20 初始化 :: chore(init): bootstrap baseline part 5
+- [C06] 2026-01-25 核心功能 :: feat(core): deliver core capability slice 6
+- [C07] 2026-01-30 核心功能 :: feat(core): deliver core capability slice 7
+- [C08] 2026-02-04 核心功能 :: feat(core): deliver core capability slice 8
+- [C09] 2026-02-09 核心功能 :: feat(core): deliver core capability slice 9
+- [C10] 2026-02-14 核心功能 :: feat(core): deliver core capability slice 10
+- [C11] 2026-02-19 核心功能 :: feat(core): deliver core capability slice 11
+- [C12] 2026-02-24 核心功能 :: feat(core): deliver core capability slice 12
+- [C13] 2026-03-01 修复 :: fix(core): resolve regression and edge case 13
+- [C14] 2026-03-06 修复 :: fix(core): resolve regression and edge case 14
+- [C15] 2026-03-10 修复 :: fix(core): resolve regression and edge case 15
+- [C16] 2026-03-14 测试 :: test(core): add/adjust smoke and regression coverage 16
+- [C17] 2026-03-18 测试 :: test(core): add/adjust smoke and regression coverage 17
+- [C18] 2026-03-21 测试 :: test(core): add/adjust smoke and regression coverage 18
+- [C19] 2026-03-24 文档/部署 :: docs(deploy): finalize docs and release checklist 19
+- [C20] 2026-03-28 文档/部署 :: docs(deploy): finalize docs and release checklist 20
+- [GF-20260105-1] 2026-01-05 gap-fill :: keep interval <= 2 days
+- [GF-20260109-1] 2026-01-09 gap-fill :: keep interval <= 2 days
+- [GF-20260113-1] 2026-01-13 gap-fill :: keep interval <= 2 days
+- [GF-20260117-1] 2026-01-17 gap-fill :: keep interval <= 2 days
+- [GF-20260119-1] 2026-01-19 gap-fill :: keep interval <= 2 days
+- [GF-20260122-1] 2026-01-22 gap-fill :: keep interval <= 2 days
+- [GF-20260124-1] 2026-01-24 gap-fill :: keep interval <= 2 days
+- [GF-20260127-1] 2026-01-27 gap-fill :: keep interval <= 2 days
+- [GF-20260129-1] 2026-01-29 gap-fill :: keep interval <= 2 days
+- [GF-20260201-1] 2026-02-01 gap-fill :: keep interval <= 2 days
+- [GF-20260203-1] 2026-02-03 gap-fill :: keep interval <= 2 days
+- [GF-20260206-1] 2026-02-06 gap-fill :: keep interval <= 2 days
+- [GF-20260208-1] 2026-02-08 gap-fill :: keep interval <= 2 days
+- [GF-20260211-1] 2026-02-11 gap-fill :: keep interval <= 2 days
+- [GF-20260213-1] 2026-02-13 gap-fill :: keep interval <= 2 days
+- [GF-20260216-1] 2026-02-16 gap-fill :: keep interval <= 2 days
+- [GF-20260218-1] 2026-02-18 gap-fill :: keep interval <= 2 days
+- [GF-20260221-1] 2026-02-21 gap-fill :: keep interval <= 2 days
+- [GF-20260223-1] 2026-02-23 gap-fill :: keep interval <= 2 days
+- [GF-20260226-1] 2026-02-26 gap-fill :: keep interval <= 2 days
+- [GF-20260228-1] 2026-02-28 gap-fill :: keep interval <= 2 days
+- [GF-20260303-1] 2026-03-03 gap-fill :: keep interval <= 2 days
+- [GF-20260305-1] 2026-03-05 gap-fill :: keep interval <= 2 days
+- [GF-20260308-1] 2026-03-08 gap-fill :: keep interval <= 2 days
+- [GF-20260312-1] 2026-03-12 gap-fill :: keep interval <= 2 days
+- [GF-20260316-1] 2026-03-16 gap-fill :: keep interval <= 2 days
+- [GF-20260320-1] 2026-03-20 gap-fill :: keep interval <= 2 days
+- [GF-20260323-1] 2026-03-23 gap-fill :: keep interval <= 2 days
+- [GF-20260326-1] 2026-03-26 gap-fill :: keep interval <= 2 days
+- [GD-20260217] 2026-02-17 global-empty-day-fill :: daily contribution coverage

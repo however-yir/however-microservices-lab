@@ -1,0 +1,31 @@
+{
+  "index_patterns": ["user-events-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "refresh_interval": "5s",
+      "index.lifecycle.name": "user-events-ilm-policy",
+      "index.lifecycle.rollover_alias": "user-events"
+    },
+    "mappings": {
+      "dynamic": "strict",
+      "properties": {
+        "event_id": { "type": "keyword" },
+        "user_id": { "type": "keyword" },
+        "event_type": { "type": "keyword" },
+        "product_id": { "type": "keyword" },
+        "price": { "type": "double" },
+        "channel": { "type": "keyword" },
+        "event_time": { "type": "date" },
+        "ingested_at": { "type": "date" },
+        "is_anomaly": { "type": "boolean" },
+        "risk_score": { "type": "float" }
+      }
+    },
+    "aliases": {
+      "user-events": {}
+    }
+  },
+  "priority": 300
+}

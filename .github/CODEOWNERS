@@ -1,0 +1,21 @@
+# Default reviewer for all files
+* @however-yir
+
+# Stream processing jobs
+/stream-processing/ @however-yir
+
+# Monitoring & alerting
+/monitoring/ @however-yir
+
+# Infrastructure & deployment
+/deploy/ @however-yir
+/docker-compose.yml @however-yir
+
+# CI/CD
+/.github/ @however-yir
+
+# Data collectors
+/data-collector/ @however-yir
+
+# Documentation
+/docs/ @however-yir

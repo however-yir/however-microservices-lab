@@ -1,0 +1,64 @@
+name: "Data Pipeline CI"
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "data-pipeline/**"
+  pull_request:
+    paths:
+      - "data-pipeline/**"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flink-jobs:
+    name: Flink Jobs (Java / Maven)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        job: [realtime-stats, data-enrich, anomaly-detect]
+    defaults:
+      run:
+        working-directory: data-pipeline/stream-processing/flink-jobs/${{ matrix.job }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "11"
+          cache: "maven"
+      - name: Build and test
+        run: mvn -B clean verify -DskipITs
+
+  python-smoke-tests:
+    name: Python Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: data-pipeline
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: data-pipeline/requirements-dev.txt
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Run smoke tests
+        run: pytest tests/test_smoke.py -v
+
+  compose-validate:
+    name: Docker Compose Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate docker-compose.yml
+        run: docker compose -f data-pipeline/docker-compose.yml config --quiet

@@ -68,11 +68,11 @@ protobuf==6.33.5
     #   grpcio-health-checking
     #   opentelemetry-proto
     #   proto-plus
-pyasn1==0.5.0
+pyasn1==0.6.3
     # via
     #   pyasn1-modules
     #   rsa
-pyasn1-modules==0.3.0
+pyasn1-modules==0.4.2
     # via google-auth
 python-json-logger==4.0.0
     # via -r requirements.in

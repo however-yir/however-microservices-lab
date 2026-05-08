@@ -1,4 +1,5 @@
 # Trivy scans for HIGH/CRITICAL CVEs; blocks on main/release, advisory on PRs.
+# Last verified clean: 2026-05-08.
 name: "Container Image Security Scan"
 
 on:

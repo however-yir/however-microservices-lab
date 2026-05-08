@@ -1,3 +1,4 @@
+# Trivy scans for HIGH/CRITICAL CVEs; blocks on main/release, advisory on PRs.
 name: "Container Image Security Scan"
 
 on:

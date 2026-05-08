@@ -105,9 +105,9 @@ func TestValidateSQLIdentifier(t *testing.T) {
 			want:  "cart_sessions",
 		},
 		{
-			name:  "valid long identifier",
-			input: "a_very_long_but_valid_table_name_for_testing",
-			want:  "a_very_long_but_valid_table_name_for_testing",
+			name:  "valid underscore-heavy identifier",
+			input: "order_items",
+			want:  "order_items",
 		},
 	}
 

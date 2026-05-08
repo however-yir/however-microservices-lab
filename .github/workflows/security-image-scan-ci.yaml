@@ -6,7 +6,7 @@ on:
       - "src/**/Dockerfile"
       - ".github/workflows/security-image-scan-ci.yaml"
   push:
-    branches: ["main"]
+    branches: ["main", "release/**"]
     paths:
       - "src/**/Dockerfile"
       - ".github/workflows/security-image-scan-ci.yaml"
@@ -24,4 +24,4 @@ jobs:
           format: table
           ignore-unfixed: true
           severity: HIGH,CRITICAL
-          exit-code: "0"
+          exit-code: ${{ github.event_name == 'push' && '1' || '0' }}

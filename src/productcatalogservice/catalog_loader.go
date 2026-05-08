@@ -27,6 +27,7 @@ import (
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	pb "github.com/GoogleCloudPlatform/microservices-demo/src/productcatalogservice/genproto"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -90,7 +91,12 @@ func loadCatalogFromAlloyDB(catalog *pb.ListProductsResponse) error {
 	pgClusterName := os.Getenv("ALLOYDB_CLUSTER_NAME")
 	pgInstanceName := os.Getenv("ALLOYDB_INSTANCE_NAME")
 	pgDatabaseName := os.Getenv("ALLOYDB_DATABASE_NAME")
-	pgTableName := os.Getenv("ALLOYDB_TABLE_NAME")
+	pgTableNameRaw := os.Getenv("ALLOYDB_TABLE_NAME")
+	pgTableName, err := ValidateSQLIdentifier(pgTableNameRaw)
+	if err != nil {
+		log.Warnf("invalid ALLOYDB_TABLE_NAME: %v", err)
+		return err
+	}
 	pgSecretName := os.Getenv("ALLOYDB_SECRET_NAME")
 
 	pgPassword, err := getSecretPayload(projectID, pgSecretName, "latest")
@@ -129,7 +135,7 @@ func loadCatalogFromAlloyDB(catalog *pb.ListProductsResponse) error {
 	}
 	defer pool.Close()
 
-	query := "SELECT id, name, description, picture, price_usd_currency_code, price_usd_units, price_usd_nanos, categories FROM " + pgTableName
+	query := "SELECT id, name, description, picture, price_usd_currency_code, price_usd_units, price_usd_nanos, categories FROM " + pgx.Identifier{pgTableName}.Sanitize()
 	rows, err := pool.Query(context.Background(), query)
 	if err != nil {
 		log.Warnf("failed to query database: %v", err)

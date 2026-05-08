@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"regexp"
 	"strings"
 
 	"cloud.google.com/go/alloydbconn"
@@ -82,6 +83,19 @@ func getSecretPayload(project, secret, version string) (string, error) {
 	return string(result.Payload.Data), nil
 }
 
+// validTableName reports whether name is a safe SQL identifier (no schema, no injection).
+var validTableNamePattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+func validateTableName(name string) error {
+	if name == "" {
+		return fmt.Errorf("table name must not be empty")
+	}
+	if !validTableNamePattern.MatchString(name) {
+		return fmt.Errorf("invalid table name %q: must match [a-zA-Z_][a-zA-Z0-9_]*", name)
+	}
+	return nil
+}
+
 func loadCatalogFromAlloyDB(catalog *pb.ListProductsResponse) error {
 	log.Info("loading catalog from AlloyDB...")
 
@@ -91,6 +105,10 @@ func loadCatalogFromAlloyDB(catalog *pb.ListProductsResponse) error {
 	pgInstanceName := os.Getenv("ALLOYDB_INSTANCE_NAME")
 	pgDatabaseName := os.Getenv("ALLOYDB_DATABASE_NAME")
 	pgTableName := os.Getenv("ALLOYDB_TABLE_NAME")
+	if err := validateTableName(pgTableName); err != nil {
+		log.Warnf("invalid ALLOYDB_TABLE_NAME: %v", err)
+		return err
+	}
 	pgSecretName := os.Getenv("ALLOYDB_SECRET_NAME")
 
 	pgPassword, err := getSecretPayload(projectID, pgSecretName, "latest")

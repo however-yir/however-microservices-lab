@@ -27,18 +27,38 @@ on:
       - '.github/workflows/terraform-validate-ci.yaml'
 jobs:
   cleanup-namespace:
-    runs-on: [self-hosted, is-enabled]
+    runs-on: ubuntu-latest
     steps:
+      - name: Check for GCP credentials
+        id: gcp
+        run: |
+          if [ -n "${{ secrets.GCP_SA_KEY }}" ]; then
+            echo "has_credentials=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_credentials=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::GCP_SA_KEY not configured; skipping namespace cleanup"
+          fi
+      - uses: google-github-actions/setup-gcloud@v2
+        if: steps.gcp.outputs.has_credentials == 'true'
+        with:
+          version: '>= 400.0.0'
+      - name: Authenticate to Google Cloud
+        if: steps.gcp.outputs.has_credentials == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+      - name: Get GKE credentials
+        if: steps.gcp.outputs.has_credentials == 'true'
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ vars.PR_CLUSTER || 'prs-gke-cluster' }}
+          location: ${{ vars.REGION || 'us-central1' }}
+          project_id: ${{ vars.PROJECT_ID || 'online-boutique-ci' }}
       - name: Delete PR namespace in staging cluster
-        if: ${{ always() }}
+        if: steps.gcp.outputs.has_credentials == 'true'
         timeout-minutes: 20
         run: |
-          gcloud container clusters get-credentials $PR_CLUSTER \
-              --region $REGION --project $PROJECT_ID
           NAMESPACE="pr${PR_NUMBER}"
-          kubectl delete namespace $NAMESPACE
+          kubectl delete namespace "$NAMESPACE" --ignore-not-found
         env:
-          PROJECT_ID: "online-boutique-ci"
-          PR_CLUSTER: "prs-gke-cluster"
-          REGION: "us-central1"
           PR_NUMBER: ${{ github.event.number }}

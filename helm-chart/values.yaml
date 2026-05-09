@@ -31,6 +31,7 @@ serviceAccounts:
 
 networkPolicies:
   # Specifies if the NetworkPolicies are created or not. If true, one fine granular NetworkPolicy per app is created.
+  # Production: set to true to enforce least-privilege network access per service.
   create: false
 
 sidecars:
@@ -53,7 +54,8 @@ googleCloudOperations:
   metrics: false
 
 seccompProfile:
-  enable: false
+  # Production: set to true to restrict syscalls via seccomp RuntimeDefault profile.
+  enable: true
   type: RuntimeDefault
 
 securityContext:
@@ -196,6 +198,21 @@ shippingService:
     limits:
       cpu: 200m
       memory: 128Mi
+
+# Production secret management notes:
+# - For AlloyDB / external database credentials, use Kubernetes Secrets or
+#   External Secrets Operator (ESO) rather than plain env vars.
+# - Reference secrets via secretKeyRef in container env, not valueFrom.
+# - Ensure secret rotation is configured when using cloud-managed secrets
+#   (e.g. GCP Secret Manager, AWS Secrets Manager).
+#
+# Example:
+#   env:
+#     - name: DB_PASSWORD
+#       valueFrom:
+#         secretKeyRef:
+#           name: alloydb-credentials
+#           key: password
 
 cartDatabase:
   # Specifies the type of the cartservice's database, could be either redis or spanner.

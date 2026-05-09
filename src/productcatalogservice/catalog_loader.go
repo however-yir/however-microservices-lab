@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"regexp"
 	"strings"
 
 	"cloud.google.com/go/alloydbconn"
@@ -28,6 +27,7 @@ import (
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	pb "github.com/GoogleCloudPlatform/microservices-demo/src/productcatalogservice/genproto"
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -83,19 +83,6 @@ func getSecretPayload(project, secret, version string) (string, error) {
 	return string(result.Payload.Data), nil
 }
 
-// validTableName reports whether name is a safe SQL identifier (no schema, no injection).
-var validTableNamePattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
-
-func validateTableName(name string) error {
-	if name == "" {
-		return fmt.Errorf("table name must not be empty")
-	}
-	if !validTableNamePattern.MatchString(name) {
-		return fmt.Errorf("invalid table name %q: must match [a-zA-Z_][a-zA-Z0-9_]*", name)
-	}
-	return nil
-}
-
 func loadCatalogFromAlloyDB(catalog *pb.ListProductsResponse) error {
 	log.Info("loading catalog from AlloyDB...")
 
@@ -104,8 +91,9 @@ func loadCatalogFromAlloyDB(catalog *pb.ListProductsResponse) error {
 	pgClusterName := os.Getenv("ALLOYDB_CLUSTER_NAME")
 	pgInstanceName := os.Getenv("ALLOYDB_INSTANCE_NAME")
 	pgDatabaseName := os.Getenv("ALLOYDB_DATABASE_NAME")
-	pgTableName := os.Getenv("ALLOYDB_TABLE_NAME")
-	if err := validateTableName(pgTableName); err != nil {
+	pgTableNameRaw := os.Getenv("ALLOYDB_TABLE_NAME")
+	pgTableName, err := ValidateSQLIdentifier(pgTableNameRaw)
+	if err != nil {
 		log.Warnf("invalid ALLOYDB_TABLE_NAME: %v", err)
 		return err
 	}
@@ -147,7 +135,7 @@ func loadCatalogFromAlloyDB(catalog *pb.ListProductsResponse) error {
 	}
 	defer pool.Close()
 
-	query := "SELECT id, name, description, picture, price_usd_currency_code, price_usd_units, price_usd_nanos, categories FROM " + pgTableName
+	query := "SELECT id, name, description, picture, price_usd_currency_code, price_usd_units, price_usd_nanos, categories FROM " + pgx.Identifier{pgTableName}.Sanitize()
 	rows, err := pool.Query(context.Background(), query)
 	if err != nil {
 		log.Warnf("failed to query database: %v", err)

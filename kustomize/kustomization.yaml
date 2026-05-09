@@ -20,9 +20,12 @@ components:
 # - components/cymbal-branding
 # - components/google-cloud-operations
 # - components/memorystore
+# Production: uncomment network-policies to enforce least-privilege network access per service.
 # - components/network-policies
 # - components/non-public-frontend
 # - components/service-accounts
+# Production: for AlloyDB, use External Secrets Operator to inject credentials
+# rather than plain env vars. See components/alloydb/README.md.
 # - components/alloydb
 # - components/single-shared-session
 # - components/spanner

@@ -15,7 +15,7 @@ description = 'However Ad Service'
 group = "com.however.microservices"
 version = "1.0.0"
 
-def grpcVersion = "1.79.0"
+def grpcVersion = "1.81.0"
 def jacksonCoreVersion = "2.21.1"
 def jacksonDatabindVersion = "2.21.1"
 def protocVersion = "4.34.0"

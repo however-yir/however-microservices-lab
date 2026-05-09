@@ -14,7 +14,7 @@ google-auth==2.23.4
     # via
     #   google-api-core
     #   google-cloud-trace
-google-cloud-trace==1.17.0
+google-cloud-trace==1.19.0
     # via -r requirements.in
 googleapis-common-protos==1.72.0
     # via

@@ -215,7 +215,7 @@ pillow==12.2.0
     # via -r requirements.in
 pluggy==1.6.0
     # via pytest
-prometheus-client==0.22.1
+prometheus-client==0.25.0
     # via -r requirements.in
 propcache==0.5.2
     # via

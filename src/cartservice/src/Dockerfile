@@ -33,7 +33,7 @@ RUN dotnet publish cartservice.csproj \
     -o /cartservice
 
 # https://mcr.microsoft.com/product/dotnet/runtime-deps
-FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/runtime-deps:10.0.0-noble-chiseled@sha256:b857c8cb8d929183cfe4c6dd9994abba92a2639dd2dbaf06005379f815991604
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/runtime-deps:10.0.7-noble-chiseled@sha256:77e678b9c66a51c832ab817d4494029ea36e3559d3df41549934f0422520ed88
 
 WORKDIR /app
 COPY --from=builder /cartservice .

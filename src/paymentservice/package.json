@@ -24,7 +24,7 @@
     "@opentelemetry/semantic-conventions": "1.40.0",
     "pino": "10.3.1",
     "simple-card-validator": "1.1.0",
-    "uuid": "13.0.0"
+    "uuid": "14.0.0"
   },
   "optionalDependencies": {
     "@google-cloud/profiler": "6.0.4"

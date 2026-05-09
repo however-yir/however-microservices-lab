@@ -3,7 +3,7 @@ grpcio-health-checking==1.76.0
 grpcio==1.76.0
 jinja2==3.1.6
 python-json-logger==4.0.0
-google-cloud-trace==1.17.0
+google-cloud-trace==1.19.0
 requests==2.33.1
 opentelemetry-distro==0.60b1
 opentelemetry-instrumentation-grpc==0.60b1

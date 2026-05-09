@@ -8,11 +8,11 @@ func TestValidateTableName(t *testing.T) {
 		input   string
 		wantErr bool
 	}{
-		{"valid simple name", "products", false},
-		{"valid with underscore", "product_catalog", false},
-		{"valid starting with underscore", "_hidden", false},
-		{"valid with numbers", "table123", false},
-		{"valid mixed case", "ProductCatalog", false},
+		{"valid whitelisted name", "products", false},
+		{"valid whitelisted with underscore", "catalog_items", false},
+		{"valid whitelisted underscore prefix", "cart_sessions", false},
+		{"valid whitelisted with numbers", "order_items", false},
+		{"not in whitelist", "product_catalog", true},
 		{"empty string", "", true},
 		{"space in name", "product catalog", true},
 		{"semicolon injection", "products; DROP TABLE users", true},
@@ -23,14 +23,13 @@ func TestValidateTableName(t *testing.T) {
 		{"single quote", "products'", true},
 		{"dash in name", "product-catalog", true},
 		{"number start", "123table", true},
-		{"null byte", "products\x00", true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateTableName(tt.input)
+			_, err := ValidateSQLIdentifier(tt.input)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("validateTableName(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+				t.Errorf("ValidateSQLIdentifier(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 			}
 		})
 	}

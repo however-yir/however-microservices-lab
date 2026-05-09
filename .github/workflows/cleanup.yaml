@@ -49,7 +49,7 @@ jobs:
           credentials_json: '${{ secrets.GCP_SA_KEY }}'
       - name: Get GKE credentials
         if: steps.gcp.outputs.has_credentials == 'true'
-        uses: google-github-actions/get-gke-credentials@v2
+        uses: google-github-actions/get-gke-credentials@v3
         with:
           cluster_name: ${{ vars.PR_CLUSTER || 'prs-gke-cluster' }}
           location: ${{ vars.REGION || 'us-central1' }}

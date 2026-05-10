@@ -3,7 +3,7 @@ aiohttp==3.13.5
 langchain-google-genai==4.2.2
 langchain==1.2.4
 pillow==12.2.0
-langchain-google-alloydb-pg==0.13.0
+langchain-google-alloydb-pg==0.14.0
 google-cloud-secret-manager==2.28.0
 requests==2.33.0
 prometheus-client==0.25.0

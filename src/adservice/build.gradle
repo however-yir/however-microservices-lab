@@ -42,7 +42,7 @@ dependencies {
                 "io.grpc:grpc-netty:${grpcVersion}",
                 "io.grpc:grpc-services:${grpcVersion}",
                 "io.grpc:grpc-census:${grpcVersion}",
-                "org.apache.logging.log4j:log4j-core:2.25.3",
+                "org.apache.logging.log4j:log4j-core:2.26.0",
                 "com.google.protobuf:protobuf-java:${protocVersion}"
 
         runtimeOnly "com.fasterxml.jackson.core:jackson-core:${jacksonCoreVersion}",

@@ -12,4 +12,4 @@ opentelemetry-sdk==1.36.0
 opentelemetry-exporter-otlp-proto-grpc==1.36.0
 pytest==9.0.3
 ruff==0.15.12
-mypy==1.18.2
+mypy==2.0.0

@@ -263,7 +263,7 @@ pydantic-core==2.41.5
     # via pydantic
 pygments==2.20.0
     # via pytest
-pytest==8.4.2
+pytest==9.0.3
     # via -r requirements.in
 pyyaml==6.0.2
     # via langchain-core

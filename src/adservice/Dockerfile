@@ -28,7 +28,7 @@ COPY . .
 RUN chmod +x gradlew
 RUN ./gradlew installDist
 
-FROM eclipse-temurin:26_35-jre-alpine@sha256:10421f30dc851c0f71dce54628083d22ef0cce51ab1fc02bf902de56fd953688
+FROM eclipse-temurin:26.0.1_8-jre-alpine@sha256:bae1c79cfc2787461c7d1ead6f41b67e3d75cc4b372dfe45b57432f9460d8ff3
 
 # @TODO: https://github.com/GoogleCloudPlatform/microservices-demo/issues/2517
 # Download Stackdriver Profiler Java agent

@@ -267,7 +267,7 @@ pytest==9.0.3
     # via -r requirements.in
 pyyaml==6.0.2
     # via langchain-core
-requests==2.33.0
+requests==2.34.2
     # via
     #   -r requirements.in
     #   google-api-core

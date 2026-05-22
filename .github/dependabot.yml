@@ -16,10 +16,16 @@ updates:
     directory: "/src/currencyservice"
     schedule:
       interval: "weekly"
+    ignore:
+      - dependency-name: "protobufjs"
+      - dependency-name: "uuid"
   - package-ecosystem: "npm"
     directory: "/src/paymentservice"
     schedule:
       interval: "weekly"
+    ignore:
+      - dependency-name: "protobufjs"
+      - dependency-name: "uuid"
 
   # Python / pip
   - package-ecosystem: "pip"

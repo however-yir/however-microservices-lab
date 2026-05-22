@@ -1,0 +1,51 @@
+[
+  {
+    "event_id": "evt-product-viewed-001",
+    "user_id": "user-001",
+    "event_type": "product_viewed",
+    "event_time": "2026-05-22T09:00:00Z",
+    "product_id": "OLJCESPC7Z",
+    "source": "frontend",
+    "channel": "web",
+    "tenant_id": "demo",
+    "schema_version": "1.1.0"
+  },
+  {
+    "event_id": "evt-assistant-recommended-001",
+    "user_id": "user-001",
+    "event_type": "assistant_recommended",
+    "event_time": "2026-05-22T09:01:00Z",
+    "route": "shopping-assistant",
+    "recommendation_ids": ["OLJCESPC7Z", "66VCHSJNUP"],
+    "confidence": 0.82,
+    "source": "shoppingassistantservice",
+    "channel": "web",
+    "tenant_id": "demo",
+    "schema_version": "1.1.0"
+  },
+  {
+    "event_id": "evt-add-to-cart-001",
+    "user_id": "user-001",
+    "event_type": "add_to_cart",
+    "event_time": "2026-05-22T09:02:00Z",
+    "product_id": "OLJCESPC7Z",
+    "quantity": 1,
+    "source": "frontend",
+    "channel": "web",
+    "tenant_id": "demo",
+    "schema_version": "1.1.0"
+  },
+  {
+    "event_id": "evt-checkout-completed-001",
+    "user_id": "user-001",
+    "event_type": "checkout_completed",
+    "event_time": "2026-05-22T09:05:00Z",
+    "order_id": "order-001",
+    "success": true,
+    "price": 42.5,
+    "source": "frontend",
+    "channel": "web",
+    "tenant_id": "demo",
+    "schema_version": "1.1.0"
+  }
+]

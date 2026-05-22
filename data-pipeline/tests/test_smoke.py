@@ -111,3 +111,35 @@ def test_api_collector_supports_http_mode():
     assert "COLLECTOR_MODE" in producer
     assert "ThreadingHTTPServer" in producer
     assert "/events" in producer
+
+
+def test_user_behavior_schema_covers_frontend_business_events():
+    """Verify frontend event names remain part of the shared data contract."""
+    schema = json.loads(
+        Path("data-storage/kafka-config/schemas/user_behavior_events-value.json").read_text()
+    )
+    event_types = set(schema["properties"]["event_type"]["enum"])
+
+    assert {
+        "product_viewed",
+        "assistant_recommended",
+        "add_to_cart",
+        "checkout_completed",
+    }.issubset(event_types)
+
+
+def test_business_event_samples_follow_schema_contract():
+    """Verify sample frontend events provide required schema fields."""
+    schema = json.loads(
+        Path("data-storage/kafka-config/schemas/user_behavior_events-value.json").read_text()
+    )
+    required_fields = set(schema["required"])
+    event_types = set(schema["properties"]["event_type"]["enum"])
+    samples = json.loads(Path("tests/fixtures/business_events.sample.json").read_text())
+
+    assert samples
+    for sample in samples:
+        assert required_fields.issubset(sample)
+        assert sample["event_type"] in event_types
+        assert sample["tenant_id"] == "demo"
+        assert sample["schema_version"]

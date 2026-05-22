@@ -85,7 +85,10 @@ type frontendServer struct {
 	collectorAddr string
 	collectorConn *grpc.ClientConn
 
-	shoppingAssistantSvcAddr string
+	shoppingAssistantSvcAddr  string
+	businessEventCollectorURL string
+	businessEventTenantID     string
+	businessEventClient       *http.Client
 }
 
 func main() {
@@ -137,6 +140,9 @@ func main() {
 	mustMapEnv(&svc.shippingSvcAddr, "SHIPPING_SERVICE_ADDR")
 	mustMapEnv(&svc.adSvcAddr, "AD_SERVICE_ADDR")
 	mustMapEnv(&svc.shoppingAssistantSvcAddr, "SHOPPING_ASSISTANT_SERVICE_ADDR")
+	svc.businessEventCollectorURL = os.Getenv("BUSINESS_EVENT_COLLECTOR_URL")
+	svc.businessEventTenantID = getenvDefault("BUSINESS_EVENT_TENANT_ID", "tenant_demo")
+	svc.businessEventClient = &http.Client{Timeout: time.Second}
 
 	mustConnGRPC(ctx, &svc.currencySvcConn, svc.currencySvcAddr)
 	mustConnGRPC(ctx, &svc.productCatalogSvcConn, svc.productCatalogSvcAddr)
@@ -222,6 +228,13 @@ func mustMapEnv(target *string, envKey string) {
 		panic(fmt.Sprintf("environment variable %q not set", envKey))
 	}
 	*target = v
+}
+
+func getenvDefault(envKey, defaultValue string) string {
+	if v := os.Getenv(envKey); v != "" {
+		return v
+	}
+	return defaultValue
 }
 
 func mustConnGRPC(ctx context.Context, conn **grpc.ClientConn, addr string) {

@@ -96,6 +96,45 @@ docker compose up -d
 
 启动 23 个服务（Kafka + Flink + ES + Qdrant + Prometheus + Grafana），详情见 [data-pipeline/README.md](data-pipeline/README.md)。
 
+### 5. 完整端到端演示路径
+
+这条路径展示 `用户行为 -> AI 推荐 -> 下单 -> Kafka/Flink 指标 -> Grafana`：
+
+```bash
+cd data-pipeline
+cp .env.example .env
+docker compose up -d
+./scripts/run_realtime_stats.sh
+```
+
+然后部署或启动 frontend，并让它把业务事件投递到 collector：
+
+```bash
+export BUSINESS_EVENT_COLLECTOR_URL=http://127.0.0.1:18088/events
+export BUSINESS_EVENT_TENANT_ID=tenant_demo
+```
+
+如果 frontend 跑在 kind/Kubernetes 中，可把 collector 指向宿主机端口：
+
+```bash
+kubectl set env deployment/frontend \
+  BUSINESS_EVENT_COLLECTOR_URL=http://host.docker.internal:18088/events \
+  BUSINESS_EVENT_TENANT_ID=tenant_demo
+```
+
+演示时按顺序操作：打开首页和商品页（`product_viewed`） -> 在 `/assistant` 查询并点击推荐商品（`assistant_recommended` + assistant 来源点击） -> 加购（`add_to_cart`） -> checkout（`checkout_completed`）。Grafana `Realtime Business Overview` 会显示推荐点击率、加购转化率、checkout success rate、异常序列、frontend latency、assistant latency、Kafka lag 和 Flink checkpoint 指标变化。
+
+故障演练：
+
+```bash
+kubectl scale deploy/productcatalogservice --replicas=0
+kubectl scale deploy/checkoutservice --replicas=0
+kubectl scale deploy/redis-cart --replicas=0
+docker stop however-local-ollama
+```
+
+预期：catalog/Redis/checkout 故障会带来 frontend 错误、checkout success rate 下降或异常序列增加；Ollama 故障时 AI assistant 返回保护模式和 `推荐ID: [NO_MATCH]`，而不是让用户请求直接崩掉。
+
 ## 多语言服务矩阵
 
 | 服务 | 语言 | 职责 | 改造重点 |
@@ -122,7 +161,7 @@ docker compose up -d
 | 数据采集 | Python Kafka Producer, Debezium CDC | API 事件采集、数据库变更捕获 |
 | 流处理 | Apache Flink 1.18 (Java) | 3 个作业：实时 PV/UV 统计、数据富化写入 Qdrant、CEP 异常检测 |
 | 存储 | Kafka + Elasticsearch + Qdrant + PostgreSQL | 消息队列、全文检索、向量存储、关系数据库 |
-| 监控 | Prometheus + Grafana + Alertmanager | 16 条告警规则、预置 Grafana Dashboard |
+| 监控 | Prometheus + Grafana + Alertmanager | 18 条告警规则、预置 Grafana Dashboard |
 | 部署 | Docker Compose + Helm | 本地 23 服务编排、Kubernetes Helm Chart |
 
 ```bash

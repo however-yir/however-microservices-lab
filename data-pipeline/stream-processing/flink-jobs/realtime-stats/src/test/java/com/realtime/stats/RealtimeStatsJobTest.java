@@ -8,14 +8,17 @@ class RealtimeStatsJobTest {
 
     @Test
     void userEventShouldParseValidJson() throws Exception {
-        String json = "{\"user_id\":\"u1\",\"event_type\":\"purchase\",\"tenant_id\":\"t1\",\"channel\":\"web\",\"schema_version\":\"v1\",\"event_time\":\"2026-01-01T00:00:00Z\"}";
+        String json = "{\"user_id\":\"u1\",\"event_type\":\"checkout_completed\",\"tenant_id\":\"t1\",\"channel\":\"web\",\"schema_version\":\"v1\",\"event_time\":\"2026-01-01T00:00:00Z\",\"source\":\"assistant\",\"success\":true}";
         RealtimeStatsJob.UserEvent event = RealtimeStatsJob.UserEvent.fromJson(json, "topic", 0, 0, "v1");
         assertNotNull(event);
         assertEquals("u1", event.userId);
-        assertEquals("purchase", event.eventType);
+        assertEquals("checkout_completed", event.eventType);
         assertEquals("t1", event.tenantId);
         assertEquals("web", event.channel);
         assertEquals("v1", event.schemaVersion);
+        assertEquals("assistant", event.source);
+        assertTrue(event.success);
+        assertEquals("checkout_completed", event.businessStage());
     }
 
     @Test
@@ -42,6 +45,7 @@ class RealtimeStatsJobTest {
         assertEquals("src-topic", event.topic);
         assertEquals(3, event.partition);
         assertEquals(42L, event.offset);
+        assertEquals("assistant_recommended", event.businessStage());
     }
 
     @Test

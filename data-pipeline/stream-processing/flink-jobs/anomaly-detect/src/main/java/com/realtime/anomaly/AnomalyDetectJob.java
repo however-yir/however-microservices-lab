@@ -95,34 +95,34 @@ public class AnomalyDetectJob {
                                 .withTimestampAssigner((event, ts) -> event.eventTime))
                 .name("normalize-events");
 
-        Pattern<UserEvent, ?> purchaseFunnelPattern = Pattern
-                .<UserEvent>begin("view")
+        Pattern<UserEvent, ?> checkoutFunnelPattern = Pattern
+                .<UserEvent>begin("product_viewed")
                 .where(new SimpleCondition<UserEvent>() {
                     @Override
                     public boolean filter(UserEvent event) {
-                        return "view".equals(event.eventType);
+                        return "product_viewed".equals(event.businessStage());
                     }
                 })
                 .next("add_to_cart")
                 .where(new SimpleCondition<UserEvent>() {
                     @Override
                     public boolean filter(UserEvent event) {
-                        return "add_to_cart".equals(event.eventType);
+                        return "add_to_cart".equals(event.businessStage());
                     }
                 })
-                .next("purchase")
+                .next("checkout_completed")
                 .where(new SimpleCondition<UserEvent>() {
                     @Override
                     public boolean filter(UserEvent event) {
-                        return "purchase".equals(event.eventType);
+                        return "checkout_completed".equals(event.businessStage());
                     }
                 })
                 .within(Time.minutes(10));
 
         DataStream<String> alertStream = CEP
-                .pattern(eventStream.keyBy(event -> event.userId), purchaseFunnelPattern)
+                .pattern(eventStream.keyBy(event -> event.userId), checkoutFunnelPattern)
                 .select((PatternSelectFunction<UserEvent, String>) pattern -> toAlertJson(jobName, pattern))
-                .name("purchase-funnel-alerts");
+                .name("checkout-funnel-alerts");
 
         KafkaSink<String> alertSink = KafkaSink.<String>builder()
                 .setBootstrapServers(bootstrapServers)
@@ -139,21 +139,21 @@ public class AnomalyDetectJob {
     }
 
     private static String toAlertJson(String jobName, Map<String, List<UserEvent>> pattern) throws Exception {
-        UserEvent view = getFirst(pattern, "view");
+        UserEvent view = getFirst(pattern, "product_viewed");
         UserEvent addToCart = getFirst(pattern, "add_to_cart");
-        UserEvent purchase = getFirst(pattern, "purchase");
+        UserEvent checkout = getFirst(pattern, "checkout_completed");
 
         ObjectNode node = MAPPER.createObjectNode();
-        node.put("alert_type", "cep_purchase_funnel");
+        node.put("alert_type", "cep_checkout_funnel");
         node.put("job_name", jobName);
-        node.put("user_id", purchase.userId);
-        node.put("tenant_id", purchase.tenantId);
-        node.put("schema_version", purchase.schemaVersion);
-        node.put("channel", purchase.channel);
-        node.put("sequence", "view->add_to_cart->purchase");
+        node.put("user_id", checkout.userId);
+        node.put("tenant_id", checkout.tenantId);
+        node.put("schema_version", checkout.schemaVersion);
+        node.put("channel", checkout.channel);
+        node.put("sequence", "product_viewed->add_to_cart->checkout_completed");
         node.put("view_time", Instant.ofEpochMilli(view.eventTime).toString());
         node.put("add_to_cart_time", Instant.ofEpochMilli(addToCart.eventTime).toString());
-        node.put("purchase_time", Instant.ofEpochMilli(purchase.eventTime).toString());
+        node.put("checkout_time", Instant.ofEpochMilli(checkout.eventTime).toString());
         node.put("event_time", Instant.now().toString());
         node.put("severity", "warning");
         return MAPPER.writeValueAsString(node);
@@ -204,6 +204,16 @@ public class AnomalyDetectJob {
             event.schemaVersion = node.has("schema_version") ? node.get("schema_version").asText() : "v1";
             event.eventTime = parseEventTime(node.has("event_time") ? node.get("event_time").asText() : null);
             return event;
+        }
+
+        String businessStage() {
+            if ("view".equals(eventType)) {
+                return "product_viewed";
+            }
+            if ("purchase".equals(eventType)) {
+                return "checkout_completed";
+            }
+            return eventType;
         }
 
         private static long parseEventTime(String eventTimeText) {

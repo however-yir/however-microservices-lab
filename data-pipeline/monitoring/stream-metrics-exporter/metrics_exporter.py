@@ -54,8 +54,32 @@ UNIQUE_USERS_5M = Gauge(
 
 CONVERSION_RATE = Gauge(
     "rdp_conversion_rate",
-    "Purchase-to-view conversion rate in percent",
+    "Checkout-to-product-view conversion rate in percent",
     ["tenant_id"],
+)
+
+RECOMMENDATION_CLICK_RATE = Gauge(
+    "rdp_recommendation_click_rate",
+    "Assistant recommendation click-through rate in percent",
+    ["tenant_id"],
+)
+
+ADD_TO_CART_CONVERSION_RATE = Gauge(
+    "rdp_add_to_cart_conversion_rate",
+    "Add-to-cart conversion rate from product views in percent",
+    ["tenant_id"],
+)
+
+CHECKOUT_SUCCESS_RATE = Gauge(
+    "rdp_checkout_success_rate",
+    "Checkout completion success rate in percent",
+    ["tenant_id"],
+)
+
+ABNORMAL_SEQUENCES_TOTAL = PromCounter(
+    "rdp_abnormal_sequences_total",
+    "Total abnormal business event sequences",
+    ["tenant_id", "sequence"],
 )
 
 FUNNEL_EVENTS_5M = Gauge(
@@ -99,12 +123,18 @@ def _shutdown(signum, frame):
 
 TENANT_VIEW_TOTAL = defaultdict(int)
 TENANT_PURCHASE_TOTAL = defaultdict(int)
+TENANT_ASSISTANT_RECOMMEND_TOTAL = defaultdict(int)
+TENANT_RECOMMENDATION_CLICK_TOTAL = defaultdict(int)
+TENANT_ADD_TO_CART_TOTAL = defaultdict(int)
+TENANT_CHECKOUT_TOTAL = defaultdict(int)
+TENANT_CHECKOUT_SUCCESS_TOTAL = defaultdict(int)
 TENANT_USER_COUNTER = defaultdict(Counter)
 ROLLING_EVENTS = deque()
 CHANNEL_COUNTER = Counter()
 FUNNEL_COUNTER = Counter()
 TENANTS_SEEN = set()
 CHANNELS_SEEN = set()
+USER_STAGE_SEEN = defaultdict(set)
 
 
 def parse_event_time(event):
@@ -141,9 +171,11 @@ def normalize_event(raw):
     tenant_id = str(raw.get("tenant_id", "default"))
     channel = str(raw.get("channel", "unknown"))
     event_ts = parse_event_time(raw)
+    stage = normalize_funnel_stage(event_type)
 
     return {
         "event_type": event_type,
+        "stage": stage,
         "user_id": user_id,
         "tenant_id": tenant_id,
         "channel": channel,
@@ -152,22 +184,90 @@ def normalize_event(raw):
     }
 
 
-def update_conversion(event_type, tenant_id):
-    if event_type == "view":
+def normalize_funnel_stage(event_type):
+    aliases = {
+        "view": "product_viewed",
+        "product_viewed": "product_viewed",
+        "click": "assistant_recommended",
+        "assistant_recommended": "assistant_recommended",
+        "add_to_cart": "add_to_cart",
+        "purchase": "checkout_completed",
+        "checkout_completed": "checkout_completed",
+    }
+    return aliases.get(event_type, event_type)
+
+
+def update_business_kpis(event):
+    event_type = event["event_type"]
+    stage = event["stage"]
+    tenant_id = event["tenant_id"]
+    raw = event["raw"]
+
+    if stage == "product_viewed":
         TENANT_VIEW_TOTAL[tenant_id] += 1
-    elif event_type == "purchase":
+        if raw.get("source") == "assistant":
+            TENANT_RECOMMENDATION_CLICK_TOTAL[tenant_id] += 1
+    elif stage == "assistant_recommended":
+        TENANT_ASSISTANT_RECOMMEND_TOTAL[tenant_id] += max(
+            1, len(raw.get("recommendation_ids") or [])
+        )
+    elif stage == "add_to_cart":
+        TENANT_ADD_TO_CART_TOTAL[tenant_id] += 1
+    elif stage == "checkout_completed":
         TENANT_PURCHASE_TOTAL[tenant_id] += 1
+        TENANT_CHECKOUT_TOTAL[tenant_id] += 1
+        if raw.get("success", True) is True:
+            TENANT_CHECKOUT_SUCCESS_TOTAL[tenant_id] += 1
 
     views = TENANT_VIEW_TOTAL[tenant_id]
     purchases = TENANT_PURCHASE_TOTAL[tenant_id]
     value = (purchases / views) * 100.0 if views > 0 else 0.0
     CONVERSION_RATE.labels(tenant_id=tenant_id).set(value)
 
+    recommendation_total = TENANT_ASSISTANT_RECOMMEND_TOTAL[tenant_id]
+    recommendation_clicks = TENANT_RECOMMENDATION_CLICK_TOTAL[tenant_id]
+    recommendation_rate = (
+        (recommendation_clicks / recommendation_total) * 100.0
+        if recommendation_total > 0
+        else 0.0
+    )
+    RECOMMENDATION_CLICK_RATE.labels(tenant_id=tenant_id).set(recommendation_rate)
+
+    add_to_cart_rate = (
+        (TENANT_ADD_TO_CART_TOTAL[tenant_id] / views) * 100.0 if views > 0 else 0.0
+    )
+    ADD_TO_CART_CONVERSION_RATE.labels(tenant_id=tenant_id).set(add_to_cart_rate)
+
+    checkout_total = TENANT_CHECKOUT_TOTAL[tenant_id]
+    checkout_rate = (
+        (TENANT_CHECKOUT_SUCCESS_TOTAL[tenant_id] / checkout_total) * 100.0
+        if checkout_total > 0
+        else 0.0
+    )
+    CHECKOUT_SUCCESS_RATE.labels(tenant_id=tenant_id).set(checkout_rate)
+
+
+def update_sequence_state(event):
+    key = (event["tenant_id"], event["user_id"])
+    stages = USER_STAGE_SEEN[key]
+    stage = event["stage"]
+
+    if stage == "add_to_cart" and "product_viewed" not in stages:
+        ABNORMAL_SEQUENCES_TOTAL.labels(
+            tenant_id=event["tenant_id"], sequence="cart_without_view"
+        ).inc()
+    if stage == "checkout_completed" and "add_to_cart" not in stages:
+        ABNORMAL_SEQUENCES_TOTAL.labels(
+            tenant_id=event["tenant_id"], sequence="checkout_without_cart"
+        ).inc()
+
+    stages.add(stage)
+
 
 def evict_old_events(now_ts):
     threshold = now_ts - UV_WINDOW_SECONDS
     while ROLLING_EVENTS and ROLLING_EVENTS[0][0] < threshold:
-        _, old_user, old_channel, old_event_type, old_tenant = ROLLING_EVENTS.popleft()
+        _, old_user, old_channel, old_stage, old_tenant = ROLLING_EVENTS.popleft()
 
         tenant_counter = TENANT_USER_COUNTER[old_tenant]
         tenant_counter[old_user] -= 1
@@ -178,7 +278,7 @@ def evict_old_events(now_ts):
         if CHANNEL_COUNTER[old_channel] <= 0:
             del CHANNEL_COUNTER[old_channel]
 
-        key = (old_channel, old_event_type)
+        key = (old_channel, old_stage)
         FUNNEL_COUNTER[key] -= 1
         if FUNNEL_COUNTER[key] <= 0:
             del FUNNEL_COUNTER[key]
@@ -191,7 +291,12 @@ def publish_rolling_gauges():
     for channel in CHANNELS_SEEN:
         CHANNEL_EVENTS_5M.labels(channel=channel).set(CHANNEL_COUNTER.get(channel, 0))
 
-    funnel_stages = ["view", "click", "add_to_cart", "purchase"]
+    funnel_stages = [
+        "product_viewed",
+        "assistant_recommended",
+        "add_to_cart",
+        "checkout_completed",
+    ]
     for channel in CHANNELS_SEEN:
         for stage in funnel_stages:
             FUNNEL_EVENTS_5M.labels(stage=stage, channel=channel).set(FUNNEL_COUNTER.get((channel, stage), 0))
@@ -216,15 +321,16 @@ def handle_business_event(payload):
     latency = max(0.0, time.time() - event_ts)
     PIPELINE_LATENCY_SECONDS.observe(latency)
 
-    update_conversion(event_type, tenant_id)
+    update_business_kpis(event)
+    update_sequence_state(event)
 
     if is_anomaly(event["raw"]):
         ANOMALY_EVENTS_TOTAL.labels(tenant_id=tenant_id).inc()
 
-    ROLLING_EVENTS.append((event_ts, event["user_id"], channel, event_type, tenant_id))
+    ROLLING_EVENTS.append((event_ts, event["user_id"], channel, event["stage"], tenant_id))
     TENANT_USER_COUNTER[tenant_id][event["user_id"]] += 1
     CHANNEL_COUNTER[channel] += 1
-    FUNNEL_COUNTER[(channel, event_type)] += 1
+    FUNNEL_COUNTER[(channel, event["stage"])] += 1
 
     evict_old_events(event_ts)
     publish_rolling_gauges()

@@ -4,7 +4,7 @@ Flink CEP 异常检测作业，基于行为序列规则识别风险模式。
 
 ## 规则
 
-当前内置规则：`view -> add_to_cart -> purchase` 在 10 分钟内连续发生，输出告警事件到 `anomaly_alerts`。
+当前内置规则：`product_viewed -> add_to_cart -> checkout_completed` 在 10 分钟内连续发生，输出告警事件到 `anomaly_alerts`。
 
 可用于识别：
 
@@ -34,13 +34,13 @@ docker exec -it rdp-flink-jobmanager flink run /opt/flink/usrlib/anomaly-detect.
 
 ```json
 {
-  "alert_type": "cep_purchase_funnel",
+  "alert_type": "cep_checkout_funnel",
   "job_name": "anomaly-detect-cep",
   "user_id": "user_42",
   "tenant_id": "tenant_demo",
   "schema_version": "v1",
   "channel": "app",
-  "sequence": "view->add_to_cart->purchase",
+  "sequence": "product_viewed->add_to_cart->checkout_completed",
   "severity": "warning",
   "event_time": "2026-04-09T03:00:00Z"
 }

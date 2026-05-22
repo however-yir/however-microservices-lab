@@ -13,7 +13,11 @@ from pydantic import ValidationError
 
 from config import AppConfig, AssistantRequest, _build_config
 from metrics import RATE_LIMIT_REJECT_COUNTER, REQUEST_COUNTER, REQUEST_LATENCY
-from model_client import DesignModelClient, _ensure_recommendation_id_format
+from model_client import (
+    PRODUCT_ID_PATTERN,
+    DesignModelClient,
+    _ensure_recommendation_id_format,
+)
 from resilience import CircuitBreaker, RateLimiter
 from retriever import CatalogRetriever, _extract_product_ids
 
@@ -37,6 +41,51 @@ def _log_event(level: str, event: str, **fields: Any) -> None:
         logging.warning(line)
     else:
         logging.info(line)
+
+
+def _recommendation_details(
+    docs: list[dict[str, Any]], candidate_ids: list[str], backend: str
+) -> dict[str, Any]:
+    by_id = {str(doc.get("id")): doc for doc in docs if doc.get("id")}
+    recommendations: list[dict[str, Any]] = []
+    scores: list[float] = []
+
+    for product_id in candidate_ids[:3]:
+        doc = by_id.get(product_id, {})
+        score = float(doc.get("_relevance_score", 0) or 0)
+        confidence = min(0.95, 0.55 + score * 0.08) if score else 0.6
+        scores.append(confidence)
+        name = str(doc.get("name", product_id))
+        categories = doc.get("categories", [])
+        category_text = ", ".join(categories) if isinstance(categories, list) else ""
+        reason = f"{name} matches the retrieved catalog context"
+        if category_text:
+            reason = f"{reason} ({category_text})"
+        recommendations.append(
+            {
+                "product_id": product_id,
+                "reason": reason,
+                "source": backend,
+                "confidence": round(confidence, 2),
+            }
+        )
+
+    confidence = sum(scores) / len(scores) if scores else 0.0
+    return {
+        "recommendations": recommendations,
+        "source": backend,
+        "confidence": round(confidence, 2),
+    }
+
+
+def _recommended_ids_from_content(content: str, fallback_ids: list[str]) -> list[str]:
+    ids: list[str] = []
+    seen: set[str] = set()
+    for match in PRODUCT_ID_PATTERN.findall(content):
+        if match not in seen:
+            ids.append(match)
+            seen.add(match)
+    return ids or fallback_ids[:3]
 
 
 def _init_tracing(config: AppConfig):
@@ -160,6 +209,7 @@ def create_app(config: AppConfig | None = None) -> Flask:
                 customer_prompt=req_obj.message,
             )
             content = _ensure_recommendation_id_format(content, candidate_ids)
+            recommended_ids = _recommended_ids_from_content(content, candidate_ids)
 
             REQUEST_COUNTER.labels(
                 status="ok",
@@ -170,9 +220,13 @@ def create_app(config: AppConfig | None = None) -> Flask:
                 "info",
                 "request_completed",
                 retrieved_docs=len(docs),
-                candidate_ids=candidate_ids[:3],
+                candidate_ids=recommended_ids[:3],
             )
-            return {"content": content, "trace_id": g.trace_id}
+            return {
+                "content": content,
+                "trace_id": g.trace_id,
+                "details": _recommendation_details(docs, recommended_ids, retriever.backend),
+            }
         except Exception as err:  # pylint: disable=broad-exception-caught
             REQUEST_COUNTER.labels(
                 status="error",

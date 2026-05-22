@@ -29,13 +29,31 @@ groups:
           description: "consumer group lag 连续 2 分钟超过 1000，请排查消费侧处理能力。"
 
       - alert: BusinessConversionDrop
-        expr: max_over_time(rdp_conversion_rate[10m]) < 1 and sum(increase(rdp_events_total{event_type="view"}[10m])) > 100
+        expr: max_over_time(rdp_conversion_rate[10m]) < 1 and sum(increase(rdp_events_total{event_type=~"view|product_viewed"}[10m])) > 100
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "业务转化率持续偏低"
           description: "最近 10 分钟浏览量较高但转化率低于 1%，建议检查推荐链路和下单流程。"
+
+      - alert: CheckoutSuccessRateLow
+        expr: max_over_time(rdp_checkout_success_rate[10m]) < 95 and sum(increase(rdp_events_total{event_type="checkout_completed"}[10m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Checkout 成功率偏低"
+          description: "checkout_completed 成功率连续低于 95%，请检查 checkout、payment、cart 或下游依赖。"
+
+      - alert: AbnormalBusinessSequenceSpike
+        expr: sum(increase(rdp_abnormal_sequences_total[5m])) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "异常业务序列增加"
+          description: "短时间内出现加购前未浏览或下单前未加购等异常序列，请检查前端事件和推荐链路。"
 
       - alert: BusinessAnomalySpike
         expr: sum(increase(rdp_anomaly_events_total[5m])) > 10

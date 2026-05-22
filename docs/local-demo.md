@@ -84,3 +84,16 @@ make local-demo-status
 ## 与 Kubernetes 演示的关系
 
 `make local-demo` 只跑本地依赖和 AI 助手服务，适合快速展示 Gemini/Ollama 切换和 JSON fallback。完整前端、多服务、Kubernetes 编排请使用 [kind + skaffold + kustomize 教程](kind-skaffold-kustomize.md)。
+
+## 接入实时数据管道
+
+实时指标演示需要额外启动 `data-pipeline`：
+
+```bash
+cd data-pipeline
+cp .env.example .env
+docker compose up -d
+./scripts/run_realtime_stats.sh
+```
+
+frontend 设置 `BUSINESS_EVENT_COLLECTOR_URL=http://127.0.0.1:18088/events` 后，浏览商品、assistant 推荐、加购和 checkout 会进入 Kafka，并在 Grafana `Realtime Business Overview` 中反映为推荐点击率、加购转化率和 checkout success rate。

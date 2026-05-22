@@ -99,6 +99,29 @@ def test_metrics_endpoint_exposes_prometheus_metrics(
     assert "shopping_assistant_retrieval_queries_total" in text
 
 
+def test_response_includes_recommendation_explanations(
+    monkeypatch: pytest.MonkeyPatch, json_catalog_path: str
+):
+    monkeypatch.setattr(
+        appmod.requests,
+        "post",
+        lambda *args, **kwargs: _DummyResponse("推荐文本 [2ZYFJ3GM2N]"),
+    )
+    app = appmod.create_app(_build_test_config(monkeypatch, json_catalog_path))
+    client = app.test_client()
+
+    resp = client.post("/", json={"message": "warm desk lamp", "image": ""})
+    body = resp.get_json()
+
+    assert resp.status_code == 200
+    assert body["details"]["recommendations"]
+    first = body["details"]["recommendations"][0]
+    assert first["product_id"] == "2ZYFJ3GM2N"
+    assert "reason" in first
+    assert "source" in first
+    assert first["confidence"] > 0
+
+
 def test_ollama_provider_uses_configured_generate_endpoint(
     monkeypatch: pytest.MonkeyPatch, json_catalog_path: str
 ):

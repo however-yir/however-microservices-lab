@@ -184,6 +184,10 @@ func (fe *frontendServer) productHandler(w http.ResponseWriter, r *http.Request)
 		Item  *pb.Product
 		Price *pb.Money
 	}{p, price}
+	fe.emitBusinessEvent(r, eventProductViewed, map[string]any{
+		"product_id": p.GetId(),
+		"source":     r.URL.Query().Get("source"),
+	})
 
 	// Fetch packaging info (weight/dimensions) of the product
 	// The packaging service is an optional microservice you can run as part of a Google Cloud demo.
@@ -232,6 +236,10 @@ func (fe *frontendServer) addToCartHandler(w http.ResponseWriter, r *http.Reques
 		renderHTTPError(log, r, w, errors.Wrap(err, "failed to add to cart"), http.StatusInternalServerError)
 		return
 	}
+	fe.emitBusinessEvent(r, eventAddToCart, map[string]any{
+		"product_id": p.GetId(),
+		"quantity":   int64(payload.Quantity),
+	})
 	w.Header().Set("location", baseUrl+"/cart")
 	w.WriteHeader(http.StatusFound)
 }
@@ -369,10 +377,19 @@ func (fe *frontendServer) placeOrderHandler(w http.ResponseWriter, r *http.Reque
 				Country:       payload.Country},
 		})
 	if err != nil {
+		fe.emitBusinessEvent(r, eventCheckoutCompleted, map[string]any{
+			"success": false,
+			"reason":  "checkout_service_error",
+		})
 		renderHTTPError(log, r, w, errors.Wrap(err, "failed to complete the order"), http.StatusInternalServerError)
 		return
 	}
 	log.WithField("order", order.GetOrder().GetOrderId()).Info("order placed")
+	fe.emitBusinessEvent(r, eventCheckoutCompleted, map[string]any{
+		"success":    true,
+		"order_id":   order.GetOrder().GetOrderId(),
+		"item_count": len(order.GetOrder().GetItems()),
+	})
 
 	order.GetOrder().GetItems()
 	recommendations, _ := fe.getRecommendations(r.Context(), sessionID(r), nil)
@@ -504,10 +521,27 @@ func (fe *frontendServer) chatBotHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.WriteHeader(http.StatusOK)
+	recommendationIDs := extractAssistantRecommendationIDs(response.Content)
+	fe.emitBusinessEvent(r, eventAssistantRecommended, map[string]any{
+		"success":            true,
+		"recommendation_ids": recommendationIDs,
+		"confidence":         assistantConfidence(response.Details),
+		"trace_id":           response.TraceID,
+	})
 	json.NewEncoder(w).Encode(Response{
 		Message: response.Content,
 		TraceID: response.TraceID,
 	})
+}
+
+func assistantConfidence(details map[string]any) float64 {
+	if details == nil {
+		return 0
+	}
+	if value, ok := details["confidence"].(float64); ok {
+		return value
+	}
+	return 0
 }
 
 func (fe *frontendServer) setCurrencyHandler(w http.ResponseWriter, r *http.Request) {

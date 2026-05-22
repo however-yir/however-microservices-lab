@@ -44,6 +44,8 @@ def test_api_contract_success_shape(monkeypatch: pytest.MonkeyPatch):
     assert isinstance(body["content"], str)
     assert "trace_id" in body
     assert isinstance(body["trace_id"], str)
+    assert "details" in body
+    assert "recommendations" in body["details"]
 
 
 def test_api_contract_error_shape(monkeypatch: pytest.MonkeyPatch):

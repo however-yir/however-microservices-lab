@@ -7,7 +7,12 @@ import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
@@ -310,15 +315,52 @@ public class RealtimeStatsJob {
         public void process(Context context, Iterable<UserEvent> elements, Collector<StatsMetric> out) {
             double views = 0;
             double purchases = 0;
+            double assistantRecommendations = 0;
+            double assistantRecommendationClicks = 0;
+            double addToCart = 0;
+            double checkoutTotal = 0;
+            double checkoutSuccess = 0;
+            double cartWithoutView = 0;
+            double checkoutWithoutCart = 0;
             UserEvent last = null;
+            List<UserEvent> orderedEvents = new ArrayList<>();
 
             for (UserEvent event : elements) {
-                if ("view".equals(event.eventType)) {
+                orderedEvents.add(event);
+            }
+            orderedEvents.sort(Comparator.comparingLong(event -> event.eventTime));
+
+            Map<String, Set<String>> userStages = new HashMap<>();
+            for (UserEvent event : orderedEvents) {
+                String stage = event.businessStage();
+                if ("product_viewed".equals(stage)) {
                     views += 1;
+                    if ("assistant".equals(event.source)) {
+                        assistantRecommendationClicks += 1;
+                    }
                 }
-                if ("purchase".equals(event.eventType)) {
+                if ("assistant_recommended".equals(stage)) {
+                    assistantRecommendations += 1;
+                }
+                if ("add_to_cart".equals(stage)) {
+                    addToCart += 1;
+                }
+                if ("checkout_completed".equals(stage)) {
                     purchases += 1;
+                    checkoutTotal += 1;
+                    if (event.success) {
+                        checkoutSuccess += 1;
+                    }
                 }
+
+                Set<String> stages = userStages.computeIfAbsent(event.userId, ignored -> new HashSet<>());
+                if ("add_to_cart".equals(stage) && !stages.contains("product_viewed")) {
+                    cartWithoutView += 1;
+                }
+                if ("checkout_completed".equals(stage) && !stages.contains("add_to_cart")) {
+                    checkoutWithoutCart += 1;
+                }
+                stages.add(stage);
                 last = event;
             }
 
@@ -328,6 +370,11 @@ public class RealtimeStatsJob {
             int partition = last == null ? -1 : last.partition;
             long offset = last == null ? -1 : last.offset;
             double conversion = views > 0 ? (purchases / views) * 100.0 : 0.0;
+            double recommendationClickRate = assistantRecommendations > 0
+                    ? (assistantRecommendationClicks / assistantRecommendations) * 100.0
+                    : 0.0;
+            double addToCartConversionRate = views > 0 ? (addToCart / views) * 100.0 : 0.0;
+            double checkoutSuccessRate = checkoutTotal > 0 ? (checkoutSuccess / checkoutTotal) * 100.0 : 0.0;
 
             out.collect(StatsMetric.metric(
                     jobName,
@@ -337,6 +384,66 @@ public class RealtimeStatsJob {
                     "all",
                     tenantId,
                     conversion,
+                    context.window(),
+                    topic,
+                    partition,
+                    offset));
+            out.collect(StatsMetric.metric(
+                    jobName,
+                    schemaVersion,
+                    "recommendation_click_rate",
+                    "gauge",
+                    "assistant",
+                    tenantId,
+                    recommendationClickRate,
+                    context.window(),
+                    topic,
+                    partition,
+                    offset));
+            out.collect(StatsMetric.metric(
+                    jobName,
+                    schemaVersion,
+                    "add_to_cart_conversion_rate",
+                    "gauge",
+                    "all",
+                    tenantId,
+                    addToCartConversionRate,
+                    context.window(),
+                    topic,
+                    partition,
+                    offset));
+            out.collect(StatsMetric.metric(
+                    jobName,
+                    schemaVersion,
+                    "checkout_success_rate",
+                    "gauge",
+                    "all",
+                    tenantId,
+                    checkoutSuccessRate,
+                    context.window(),
+                    topic,
+                    partition,
+                    offset));
+            out.collect(StatsMetric.metric(
+                    jobName,
+                    schemaVersion,
+                    "abnormal_sequence",
+                    "counter",
+                    "cart_without_view",
+                    tenantId,
+                    cartWithoutView,
+                    context.window(),
+                    topic,
+                    partition,
+                    offset));
+            out.collect(StatsMetric.metric(
+                    jobName,
+                    schemaVersion,
+                    "abnormal_sequence",
+                    "counter",
+                    "checkout_without_cart",
+                    tenantId,
+                    checkoutWithoutCart,
                     context.window(),
                     topic,
                     partition,
@@ -459,6 +566,8 @@ public class RealtimeStatsJob {
         public String tenantId;
         public String channel;
         public long eventTime;
+        public String source;
+        public boolean success;
         public String schemaVersion;
         public String topic;
         public int partition;
@@ -480,6 +589,8 @@ public class RealtimeStatsJob {
             event.eventType = node.get("event_type").asText();
             event.tenantId = node.has("tenant_id") ? node.get("tenant_id").asText() : "default";
             event.channel = node.has("channel") ? node.get("channel").asText() : "unknown";
+            event.source = node.has("source") ? node.get("source").asText() : "";
+            event.success = !node.has("success") || node.get("success").asBoolean();
             event.schemaVersion = node.has("schema_version")
                     ? node.get("schema_version").asText()
                     : defaultSchemaVersion;
@@ -489,6 +600,19 @@ public class RealtimeStatsJob {
             event.partition = partition;
             event.offset = offset;
             return event;
+        }
+
+        String businessStage() {
+            if ("view".equals(eventType)) {
+                return "product_viewed";
+            }
+            if ("click".equals(eventType)) {
+                return "assistant_recommended";
+            }
+            if ("purchase".equals(eventType)) {
+                return "checkout_completed";
+            }
+            return eventType;
         }
 
         private static long parseEventTime(String eventTimeText) {

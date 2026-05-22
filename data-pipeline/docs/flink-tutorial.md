@@ -35,7 +35,7 @@
 
 `stream-processing/flink-jobs/anomaly-detect` 任务完成：
 
-- Flink CEP 识别行为序列 `view -> add_to_cart -> purchase`
+- Flink CEP 识别行为序列 `product_viewed -> add_to_cart -> checkout_completed`
 - 输出告警到 Kafka `anomaly_alerts`
 
 ## 3. Exactly-Once 配置

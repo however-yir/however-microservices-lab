@@ -74,7 +74,7 @@ flowchart TD
 关键产出：
 
 - 分钟级 UV/PV 趋势
-- 事件类型分布（view/click/add_to_cart/purchase）
+- 事件类型分布（product_viewed/assistant_recommended/add_to_cart/checkout_completed）
 - 异常事件命中记录与告警通知
 
 ### 2.2 场景二：AI 数据管道（结合 RAG）
@@ -318,10 +318,25 @@ curl http://localhost:8086/subjects
 
 ### 7.1 电商行为分析链路
 
-1. `producer.py` 生成用户行为事件并写入 `user_behavior_events`。
-2. Flink 消费 Kafka 事件，按事件时间进行窗口聚合。
-3. 输出 PV/UV 指标并可扩展写入 Elasticsearch。
-4. Grafana 读取指标，形成实时运营大屏。
+1. frontend 或 `producer.py` 生成统一业务事件并写入 `user_behavior_events`。
+2. API collector 的 HTTP 模式接收 `/events`，把 `product_viewed`、`assistant_recommended`、`add_to_cart`、`checkout_completed` 投递到 Kafka。
+3. Flink 消费 Kafka 事件，按事件时间计算推荐点击率、加购转化率、checkout success rate 和异常序列。
+4. `stream-metrics-exporter` 同步输出滚动业务指标，Grafana 读取 Prometheus 指标形成实时运营大屏。
+
+frontend 接入 collector：
+
+```bash
+export BUSINESS_EVENT_COLLECTOR_URL=http://127.0.0.1:18088/events
+export BUSINESS_EVENT_TENANT_ID=tenant_demo
+```
+
+手工发送一条事件：
+
+```bash
+curl -sS -X POST http://127.0.0.1:18088/events \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"demo-user","event_type":"product_viewed","product_id":"OLJCESPC7Z","channel":"web"}'
+```
 
 ### 7.2 RAG 数据管道链路
 
@@ -348,11 +363,11 @@ curl http://localhost:8086/subjects
 - Prometheus 负责指标采集与规则计算（新增 Qdrant/Elasticsearch 采集目标）
 - Grafana 负责看板与可视化
 - Alertmanager 负责告警路由
-- `stream-metrics-exporter` 将 Kafka 行为事件转为业务指标（UV/PV/转化率/异常），支持结构化 JSON 日志与优雅停机
+- `stream-metrics-exporter` 将 Kafka 行为事件转为业务指标（UV/PV/推荐点击率/加购转化率/checkout success rate/异常序列），支持结构化 JSON 日志与优雅停机
 - `connect-monitor-exporter` 采集 Kafka Connect connector/task 运行状态，支持结构化 JSON 日志
 - `scripts/send_webhook_alert.py` 用于手工验证飞书/钉钉机器人通知
 
-### 告警规则（16条）
+### 告警规则（18条）
 
 | 告警 | 级别 | 说明 |
 |---|---|---|
@@ -366,6 +381,8 @@ curl http://localhost:8086/subjects
 | KafkaConsumerLagHigh | warning | 消费堆积（总） |
 | KafkaConsumerLagByGroup | warning | 消费堆积（按 group） |
 | BusinessConversionDrop | warning | 转化率偏低 |
+| CheckoutSuccessRateLow | warning | checkout 成功率偏低 |
+| AbnormalBusinessSequenceSpike | warning | 异常业务序列增加 |
 | EventParseFailureHigh | warning | 解析失败偏高 |
 | IngestionSuccessRateLow | warning | 摄取成功率低于 SLO |
 | PipelineLatencyP95High | warning | 端到端延迟超阈值 |
@@ -379,9 +396,9 @@ curl http://localhost:8086/subjects
 - UV/PV 看板
 - 转化率趋势
 - 异常事件趋势
-- 漏斗分层（view/click/add_to_cart/purchase）
+- 漏斗分层（product_viewed/assistant_recommended/add_to_cart/checkout_completed）
 - 渠道分层（app/web/mini_program）
-- SLO 指标卡（摄取成功率、延迟 P95）
+- SLO 指标卡（摄取成功率、延迟 P95、frontend latency、assistant latency、Kafka lag、Flink checkpoint）
 - Active Alerts 面板
 
 示例：
@@ -405,7 +422,7 @@ python scripts/send_webhook_alert.py "[TEST] realtime pipeline alert"
 - [x] Elasticsearch ILM 生命周期策略
 - [x] CI + Helm v0.2.0 部署骨架
 - [x] 企业级加固：网络隔离 / 凭证外部化 / 测试覆盖 / Runbook
-- [x] 16 条 Prometheus 告警规则 + 结构化日志 + 优雅停机
+- [x] 18 条 Prometheus 告警规则 + 结构化日志 + 优雅停机
 - [ ] Elasticsearch 与 Qdrant 双写生产化 sink
 - [ ] GitOps 部署流程（ArgoCD/Flux）
 - [ ] 混沌工程测试

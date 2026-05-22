@@ -111,6 +111,23 @@ services:
     networks:
       - data-plane
 
+  api-collector:
+    build: ./data-collector/api-collector
+    container_name: rdp-api-collector
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      COLLECTOR_MODE: http
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC: user_behavior_events
+      TENANT_ID: tenant_demo
+      HTTP_PORT: 8088
+    ports:
+      - "18088:8088"
+    networks:
+      - data-plane
+
   kafka-exporter:
     image: danielqsj/kafka-exporter:v1.7.0
     container_name: rdp-kafka-exporter

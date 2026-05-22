@@ -20,6 +20,7 @@ def test_docker_compose_valid():
     content = compose.read_text()
     assert "services:" in content
     assert "kafka:" in content
+    assert "api-collector:" in content
     assert "flink-jobmanager:" in content
 
 
@@ -102,3 +103,11 @@ def test_dockerfiles_exist():
     assert Path("data-collector/api-collector/Dockerfile").exists()
     assert Path("monitoring/stream-metrics-exporter/Dockerfile").exists()
     assert Path("monitoring/connect-exporter/Dockerfile").exists()
+
+
+def test_api_collector_supports_http_mode():
+    """Verify frontend can send business events through the API collector."""
+    producer = Path("data-collector/api-collector/producer.py").read_text()
+    assert "COLLECTOR_MODE" in producer
+    assert "ThreadingHTTPServer" in producer
+    assert "/events" in producer

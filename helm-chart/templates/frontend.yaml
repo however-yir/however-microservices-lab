@@ -130,6 +130,12 @@ spec:
             value: {{ .Values.shoppingAssistantService.create | quote }}
           - name: ENABLE_SINGLE_SHARED_SESSION
             value: {{ .Values.frontend.singleSharedSession | quote }}
+          {{- if .Values.frontend.businessEventCollectorUrl }}
+          - name: BUSINESS_EVENT_COLLECTOR_URL
+            value: {{ .Values.frontend.businessEventCollectorUrl | quote }}
+          - name: BUSINESS_EVENT_TENANT_ID
+            value: {{ .Values.frontend.businessEventTenantId | quote }}
+          {{- end }}
           resources:
             {{- toYaml .Values.frontend.resources | nindent 12 }}
 ---

@@ -12,13 +12,25 @@ class AnomalyDetectJobTest {
 
     @Test
     void userEventShouldParseValidJson() throws Exception {
-        String json = "{\"user_id\":\"u1\",\"event_type\":\"view\",\"channel\":\"app\",\"tenant_id\":\"t1\",\"schema_version\":\"v1\",\"event_time\":\"2026-01-01T00:00:00Z\"}";
+        String json = "{\"user_id\":\"u1\",\"event_type\":\"product_viewed\",\"channel\":\"app\",\"tenant_id\":\"t1\",\"schema_version\":\"v1\",\"event_time\":\"2026-01-01T00:00:00Z\"}";
         AnomalyDetectJob.UserEvent event = AnomalyDetectJob.UserEvent.fromJson(json);
         assertNotNull(event);
         assertEquals("u1", event.userId);
-        assertEquals("view", event.eventType);
+        assertEquals("product_viewed", event.eventType);
+        assertEquals("product_viewed", event.businessStage());
         assertEquals("app", event.channel);
         assertEquals("t1", event.tenantId);
+    }
+
+    @Test
+    void userEventShouldMapLegacyFunnelStages() throws Exception {
+        AnomalyDetectJob.UserEvent view = AnomalyDetectJob.UserEvent.fromJson("{\"user_id\":\"u1\",\"event_type\":\"view\"}");
+        AnomalyDetectJob.UserEvent purchase = AnomalyDetectJob.UserEvent.fromJson("{\"user_id\":\"u1\",\"event_type\":\"purchase\"}");
+
+        assertNotNull(view);
+        assertNotNull(purchase);
+        assertEquals("product_viewed", view.businessStage());
+        assertEquals("checkout_completed", purchase.businessStage());
     }
 
     @Test

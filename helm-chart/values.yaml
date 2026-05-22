@@ -124,6 +124,8 @@ frontend:
   # One of: local, gcp, aws, azure, onprem, alibaba. When not set, defaults to "local" unless running in GKE, otherwise auto-sets to gcp.
   platform: local
   singleSharedSession: false
+  businessEventCollectorUrl: ""
+  businessEventTenantId: tenant_demo
   virtualService:
     create: false
     hosts:

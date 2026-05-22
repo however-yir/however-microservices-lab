@@ -6,8 +6,30 @@
   "properties": {
     "event_id": {"type": "string"},
     "user_id": {"type": "string"},
-    "event_type": {"type": "string", "enum": ["view", "click", "add_to_cart", "purchase"]},
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "view",
+        "click",
+        "purchase",
+        "product_viewed",
+        "assistant_recommended",
+        "add_to_cart",
+        "checkout_completed"
+      ]
+    },
     "product_id": {"type": "string"},
+    "quantity": {"type": "integer"},
+    "order_id": {"type": "string"},
+    "success": {"type": "boolean"},
+    "source": {"type": "string"},
+    "route": {"type": "string"},
+    "recommendation_ids": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "confidence": {"type": "number"},
+    "metadata": {"type": "object"},
     "price": {"type": "number"},
     "channel": {"type": "string", "enum": ["app", "web", "mini_program", "unknown"]},
     "event_time": {"type": "string", "format": "date-time"},

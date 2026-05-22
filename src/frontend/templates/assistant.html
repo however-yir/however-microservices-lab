@@ -207,7 +207,7 @@
           const product = await productResponse.json();
           const botProductDiv = document.createElement("a");
           botProductDiv.classList.add("bot-product");
-          botProductDiv.href = "{{ $.baseUrl }}/product/" + id;
+          botProductDiv.href = "{{ $.baseUrl }}/product/" + id + "?source=assistant";
 
           const botProductImg = document.createElement("img");
           botProductImg.src = product.picture;

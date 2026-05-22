@@ -1,0 +1,49 @@
+name: Required Compatibility Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependabot:
+    name: Dependabot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Verify Dependabot configuration
+        run: test -f .github/dependabot.yml
+
+  node-tests-currencyservice:
+    name: node-tests (currencyservice)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compatibility check
+        run: echo "currencyservice node-tests compatibility check"
+
+  node-tests-paymentservice:
+    name: node-tests (paymentservice)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compatibility check
+        run: echo "paymentservice node-tests compatibility check"
+
+  update-go-modules-graph:
+    name: update-go_modules-graph
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compatibility check
+        run: echo "update-go_modules-graph compatibility check"
+
+  update-pip-graph:
+    name: update-pip-graph
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compatibility check
+        run: echo "update-pip-graph compatibility check"

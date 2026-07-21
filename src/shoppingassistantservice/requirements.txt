@@ -213,7 +213,7 @@ pathspec==1.1.1
     # via mypy
 pgvector==0.3.6
     # via langchain-postgres
-pillow==12.2.0
+pillow==12.3.0
     # via -r requirements.in
 pluggy==1.6.0
     # via pytest

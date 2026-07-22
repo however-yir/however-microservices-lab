@@ -68,7 +68,7 @@ protobuf==6.33.5
     #   grpcio-health-checking
     #   opentelemetry-proto
     #   proto-plus
-pyasn1==0.6.3
+pyasn1==0.6.4
     # via
     #   pyasn1-modules
     #   rsa

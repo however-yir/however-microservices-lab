@@ -7,7 +7,6 @@ required_files=(
   "LICENSE"
   "CONTRIBUTING.md"
   ".github/SECURITY.md"
-  ".github/dependabot.yml"
   ".github/workflows/codeql.yml"
   ".github/workflows/repo-contract-ci.yml"
   ".github/workflows/quick-ci.yaml"

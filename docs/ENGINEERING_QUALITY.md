@@ -11,7 +11,7 @@ This document defines the quality baseline and delivery policy for `however-yir/
 ## 2. Quality Gates
 
 - Security scans: CodeQL + secret scanning workflows
-- Dependency hygiene: Dependabot for GitHub Actions and detected ecosystems
+- Dependency hygiene: manual dependency review for GitHub Actions and detected ecosystems
 - Contract checks: `tests/repo_contract_test.sh` in CI
 - Build and test checks: existing project-specific workflows remain the source of truth
 

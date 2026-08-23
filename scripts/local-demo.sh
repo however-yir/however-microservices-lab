@@ -63,7 +63,10 @@ start_assistant() {
 
   (
     cd "${ROOT_DIR}/src/shoppingassistantservice"
-    env \
+    # exec replaces this subshell with the python process so $! (stored in
+    # PID_FILE) is the actual server PID and `stop` kills it cleanly instead
+    # of orphaning it.
+    exec env \
       MODEL_PROVIDER=ollama \
       OLLAMA_BASE_URL="http://localhost:${OLLAMA_PORT}" \
       OLLAMA_ALLOWED_HOSTS="localhost,127.0.0.1" \

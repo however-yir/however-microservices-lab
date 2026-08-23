@@ -135,6 +135,8 @@ FUNNEL_COUNTER = Counter()
 TENANTS_SEEN = set()
 CHANNELS_SEEN = set()
 USER_STAGE_SEEN = defaultdict(set)
+USER_STAGE_LAST_SEEN = defaultdict(float)
+LAST_STAGE_GC_TS = 0.0
 
 
 def parse_event_time(event):
@@ -262,6 +264,27 @@ def update_sequence_state(event):
         ).inc()
 
     stages.add(stage)
+    USER_STAGE_LAST_SEEN[key] = max(
+        USER_STAGE_LAST_SEEN[key], event["event_ts"]
+    )
+
+
+def evict_stale_stage_state(now_ts):
+    """Drop per-user sequence state not refreshed within the UV window.
+
+    Keeps USER_STAGE_SEEN / USER_STAGE_LAST_SEEN bounded to recently active
+    users instead of growing forever. Runs at most once per window.
+    """
+    global LAST_STAGE_GC_TS
+    if now_ts - LAST_STAGE_GC_TS < UV_WINDOW_SECONDS:
+        return
+    LAST_STAGE_GC_TS = now_ts
+
+    threshold = now_ts - UV_WINDOW_SECONDS
+    stale_keys = [key for key, seen_ts in USER_STAGE_LAST_SEEN.items() if seen_ts < threshold]
+    for key in stale_keys:
+        del USER_STAGE_LAST_SEEN[key]
+        USER_STAGE_SEEN.pop(key, None)
 
 
 def evict_old_events(now_ts):
@@ -333,6 +356,7 @@ def handle_business_event(payload):
     FUNNEL_COUNTER[(channel, event["stage"])] += 1
 
     evict_old_events(event_ts)
+    evict_stale_stage_state(event_ts)
     publish_rolling_gauges()
 
 
@@ -361,6 +385,19 @@ def handle_flink_metric(payload):
     FLINK_METRIC_MESSAGES_TOTAL.labels(metric_name=metric_name).inc()
 
 
+def deserialize_payload(raw):
+    """Decode a Kafka message value into a parsed JSON payload.
+
+    Malformed messages are counted and returned as None instead of raising,
+    so a single poison message cannot kill the consume loop.
+    """
+    try:
+        return json.loads(raw.decode("utf-8"))
+    except (AttributeError, UnicodeDecodeError, json.JSONDecodeError):
+        EVENT_PARSE_FAILURES_TOTAL.inc()
+        return None
+
+
 def main():
     topics = sorted({KAFKA_EVENT_TOPIC, KAFKA_METRIC_TOPIC})
     start_http_server(METRICS_PORT)
@@ -377,7 +414,7 @@ def main():
         group_id=KAFKA_GROUP_ID,
         auto_offset_reset="latest",
         enable_auto_commit=True,
-        value_deserializer=lambda v: json.loads(v.decode("utf-8")),
+        value_deserializer=lambda v: v,
     )
 
     signal.signal(signal.SIGTERM, _shutdown)
@@ -388,11 +425,20 @@ def main():
         for topic_partition, messages in records.items():
             topic = topic_partition.topic
             for message in messages:
-                payload = message.value
-                if topic == KAFKA_METRIC_TOPIC:
-                    handle_flink_metric(payload)
-                else:
-                    handle_business_event(payload)
+                payload = deserialize_payload(message.value)
+                if payload is None:
+                    continue
+                try:
+                    if topic == KAFKA_METRIC_TOPIC:
+                        handle_flink_metric(payload)
+                    else:
+                        handle_business_event(payload)
+                except Exception:
+                    logger.exception(
+                        "failed to handle message on topic %s (offset %s), skipping",
+                        topic,
+                        getattr(message, "offset", "unknown"),
+                    )
 
     logger.info("shutting down consumer")
     consumer.close()

@@ -26,6 +26,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -42,6 +43,10 @@ type platformDetails struct {
 	provider string
 }
 
+// assistantClient is shared across /bot proxy requests with a bounded timeout
+// so a hung assistant backend cannot hold frontend connections indefinitely.
+var assistantClient = &http.Client{Timeout: 30 * time.Second}
+
 var (
 	frontendMessage  = strings.TrimSpace(os.Getenv("FRONTEND_MESSAGE"))
 	isCymbalBrand    = "true" == strings.ToLower(os.Getenv("CYMBAL_BRANDING"))
@@ -51,10 +56,36 @@ var (
 			"renderMoney":        renderMoney,
 			"renderCurrencyLogo": renderCurrencyLogo,
 		}).ParseGlob("templates/*.html"))
-	plat platformDetails
+	plat         platformDetails
+	platInitOnce sync.Once
 )
 
 var validEnvs = []string{"local", "gcp", "azure", "aws", "onprem", "alibaba"}
+
+// initPlatformDetails computes the platform details exactly once. The result
+// is static for the process lifetime, so computing it per request only raced
+// concurrent readers of the plat global.
+func initPlatformDetails() {
+	platInitOnce.Do(func() {
+		// Set ENV_PLATFORM (default to local if not set; use env var if set; otherwise detect GCP, which overrides env)
+		var env = os.Getenv("ENV_PLATFORM")
+		// Only override from env variable if set + valid env
+		if env == "" || stringinSlice(validEnvs, env) == false {
+			fmt.Println("env platform is either empty or invalid")
+			env = "local"
+		}
+		// Autodetect GCP
+		addrs, err := net.LookupHost("metadata.google.internal.")
+		if err == nil && len(addrs) > 0 {
+			log.Debugf("Detected Google metadata server: %v, setting ENV_PLATFORM to GCP.", addrs)
+			env = "gcp"
+		}
+
+		log.Debugf("ENV_PLATFORM is: %s", env)
+		plat = platformDetails{}
+		plat.setPlatformDetails(strings.ToLower(env))
+	})
+}
 
 func (fe *frontendServer) homeHandler(w http.ResponseWriter, r *http.Request) {
 	log := r.Context().Value(ctxKeyLog{}).(logrus.FieldLogger)
@@ -90,22 +121,8 @@ func (fe *frontendServer) homeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set ENV_PLATFORM (default to local if not set; use env var if set; otherwise detect GCP, which overrides env)_
-	var env = os.Getenv("ENV_PLATFORM")
-	// Only override from env variable if set + valid env
-	if env == "" || stringinSlice(validEnvs, env) == false {
-		fmt.Println("env platform is either empty or invalid")
-		env = "local"
-	}
-	// Autodetect GCP
-	addrs, err := net.LookupHost("metadata.google.internal.")
-	if err == nil && len(addrs) >= 0 {
-		log.Debugf("Detected Google metadata server: %v, setting ENV_PLATFORM to GCP.", addrs)
-		env = "gcp"
-	}
-
-	log.Debugf("ENV_PLATFORM is: %s", env)
-	plat = platformDetails{}
-	plat.setPlatformDetails(strings.ToLower(env))
+	// Platform details are computed once for the process; see initPlatformDetails.
+	initPlatformDetails()
 
 	if err := templates.ExecuteTemplate(w, "home", injectCommonTemplateData(r, map[string]interface{}{
 		"show_currency": true,
@@ -491,7 +508,7 @@ func (fe *frontendServer) chatBotHandler(w http.ResponseWriter, r *http.Request)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	res, err := http.DefaultClient.Do(req)
+	res, err := assistantClient.Do(req)
 	if err != nil {
 		renderHTTPError(log, r, w, errors.Wrap(err, "failed to send request"), http.StatusInternalServerError)
 		return
@@ -578,6 +595,10 @@ func (fe *frontendServer) chooseAd(ctx context.Context, ctxKeys []string, log lo
 		log.WithField("error", err).Warn("failed to retrieve ads")
 		return nil
 	}
+	if len(ads) == 0 {
+		log.Warn("no ads available")
+		return nil
+	}
 	return ads[rand.Intn(len(ads))]
 }
 
@@ -597,6 +618,7 @@ func renderHTTPError(log logrus.FieldLogger, r *http.Request, w http.ResponseWri
 }
 
 func injectCommonTemplateData(r *http.Request, payload map[string]interface{}) map[string]interface{} {
+	initPlatformDetails()
 	data := map[string]interface{}{
 		"session_id":        sessionID(r),
 		"request_id":        r.Context().Value(ctxKeyRequestID{}),

@@ -42,12 +42,14 @@ import (
 )
 
 var (
-	catalogMutex *sync.Mutex
+	catalogMutex *sync.RWMutex
 	log          *logrus.Logger
 	extraLatency time.Duration
 
 	port = "3550"
 
+	// reloadCatalog is guarded by catalogMutex: written by the signal
+	// goroutine under Lock, read by parseCatalog under RLock.
 	reloadCatalog bool
 )
 
@@ -62,7 +64,7 @@ func init() {
 		TimestampFormat: time.RFC3339Nano,
 	}
 	log.Out = os.Stdout
-	catalogMutex = &sync.Mutex{}
+	catalogMutex = &sync.RWMutex{}
 }
 
 func main() {
@@ -102,6 +104,7 @@ func main() {
 		for {
 			sig := <-sigs
 			log.Printf("Received signal: %s", sig)
+			catalogMutex.Lock()
 			if sig == syscall.SIGUSR1 {
 				reloadCatalog = true
 				log.Infof("Enable catalog reloading")
@@ -109,6 +112,7 @@ func main() {
 				reloadCatalog = false
 				log.Infof("Disable catalog reloading")
 			}
+			catalogMutex.Unlock()
 		}
 	}()
 

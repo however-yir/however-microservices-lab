@@ -10,11 +10,13 @@ class RateLimiter:
         self.window_seconds = window_seconds
         self.max_requests = max_requests
         self.events: dict[str, deque[float]] = {}
+        self._last_eviction = 0.0
         self.lock = threading.Lock()
 
     def allow(self, key: str) -> bool:
         now = time.time()
         with self.lock:
+            self._evict_expired_keys(now)
             queue = self.events.setdefault(key, deque())
             while queue and now - queue[0] > self.window_seconds:
                 queue.popleft()
@@ -22,6 +24,23 @@ class RateLimiter:
                 return False
             queue.append(now)
             return True
+
+    def _evict_expired_keys(self, now: float) -> None:
+        """Drop keys whose deques are empty or fully expired.
+
+        Without this, keys for one-off callers stay in the map forever and the
+        events dict grows without bound. Sweeps run at most once per window.
+        """
+        if now - self._last_eviction < self.window_seconds:
+            return
+        self._last_eviction = now
+        expired = [
+            key
+            for key, queue in self.events.items()
+            if not queue or now - queue[0] > self.window_seconds
+        ]
+        for key in expired:
+            del self.events[key]
 
 
 class CircuitBreaker:

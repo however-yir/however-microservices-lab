@@ -136,15 +136,25 @@ def create_app(config: AppConfig | None = None) -> Flask:
     retriever = CatalogRetriever(config)
     model_client = DesignModelClient(config, circuit_breaker)
 
+    # Health/readiness probes and metrics scraping bypass the rate limiter so
+    # probes are never 429'd (which would flap K8s readiness) and the shared
+    # K8s-egress key cannot starve them.
+    RATE_LIMIT_EXEMPT_PATHS = frozenset({"/healthz", "/livez", "/readyz", "/metrics"})
+
     @app.before_request
     def before_request_hook():
         g.trace_id = request.headers.get("x-request-id", str(uuid.uuid4()))
         g.request_start = time.time()
-        remote = request.headers.get("x-forwarded-for", request.remote_addr or "unknown")
-        if not limiter.allow(remote):
-            RATE_LIMIT_REJECT_COUNTER.inc()
-            _log_event("warning", "rate_limit_rejected", remote=remote)
-            return {"error": "rate limit exceeded"}, 429
+        if request.path not in RATE_LIMIT_EXEMPT_PATHS:
+            # NOTE: x-forwarded-for is client-forgeable when the service is
+            # reached directly (not behind a trusted ingress that overwrites
+            # it). Behind such an ingress all clients share one key unless the
+            # ingress appends the real client IP; see docs notes in the repo.
+            remote = request.headers.get("x-forwarded-for", request.remote_addr or "unknown")
+            if not limiter.allow(remote):
+                RATE_LIMIT_REJECT_COUNTER.inc()
+                _log_event("warning", "rate_limit_rejected", remote=remote)
+                return {"error": "rate limit exceeded"}, 429
         return None
 
     @app.after_request
@@ -158,7 +168,9 @@ def create_app(config: AppConfig | None = None) -> Flask:
 
     @app.route("/", methods=["POST"])
     def design_assistant():
-        payload = request.get_json(silent=True) or {}
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            payload = {}
         try:
             req_obj = AssistantRequest(**payload)
         except ValidationError as err:

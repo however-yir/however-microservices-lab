@@ -102,8 +102,14 @@ class EventCollectorHandler(BaseHTTPRequestHandler):
             self._write_json({"error": str(err)}, HTTPStatus.BAD_REQUEST)
             return
 
-        self.producer.send(TOPIC, event)
-        self.producer.flush(timeout=5)
+        try:
+            # Wait on the send future: flush() alone swallows per-message
+            # failures, and acking an event Kafka never accepted loses it.
+            self.producer.send(TOPIC, event).get(timeout=5)
+        except Exception as err:  # kafka-python raises KafkaError subclasses here.
+            print(json.dumps({"kafka_error": str(err), "event": event}, ensure_ascii=False), flush=True)
+            self._write_json({"error": f"kafka publish failed: {err}"}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
         print(json.dumps({"accepted": event}, ensure_ascii=False), flush=True)
         self._write_json({"status": "accepted", "topic": TOPIC}, HTTPStatus.ACCEPTED)
 

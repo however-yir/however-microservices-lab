@@ -28,6 +28,11 @@ kubectl logs deploy/shoppingassistantservice --tail=200
 1. 检查 `RATE_LIMIT_WINDOW_SECONDS` 与 `RATE_LIMIT_MAX_REQUESTS` 配置。  
 2. 根据业务峰值临时调大阈值并回归验证。  
 
+限流键说明与已知局限：
+
+- 限流键取 `x-forwarded-for`（缺失时回退 `remote_addr`），健康探针（`/healthz`、`/livez`、`/readyz`）与 `/metrics` 不受限流。  
+- `x-forwarded-for` 在服务被直连时可被客户端伪造；在 K8s 集群内若入口不追加真实客户端 IP，所有外部用户会共享同一个桶，误触发全站 429。生产部署应确保入口层覆写/追加可信的 `x-forwarded-for`，或改用入口层提供的真实客户端 IP 头。  
+
 ### 2.3 熔断进入保护模式
 
 1. 检查模型服务错误率与时延。  

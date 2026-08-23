@@ -51,10 +51,17 @@ func loadCatalogFromLocalFile(catalog *pb.ListProductsResponse) error {
 		return err
 	}
 
-	if err := jsonpb.Unmarshal(bytes.NewReader(catalogJSON), catalog); err != nil {
+	// Unmarshal into a fresh message, then swap the slice in wholesale.
+	// jsonpb legacy unmarshal has Append semantics for repeated fields, so
+	// unmarshalling in place would double the catalog on every hot reload.
+	// Replacing the slice (instead of resetting in place) also keeps readers
+	// holding the previous slice safe while we hold the write lock.
+	fresh := &pb.ListProductsResponse{}
+	if err := jsonpb.Unmarshal(bytes.NewReader(catalogJSON), fresh); err != nil {
 		log.Warnf("failed to parse the catalog JSON: %v", err)
 		return err
 	}
+	catalog.Products = fresh.Products
 
 	log.Info("successfully parsed product catalog json")
 	return nil
@@ -143,7 +150,9 @@ func loadCatalogFromAlloyDB(catalog *pb.ListProductsResponse) error {
 	}
 	defer rows.Close()
 
-	catalog.Products = catalog.Products[:0]
+	// Build into a new slice and swap it in wholesale so concurrent readers
+	// holding the previous slice never observe in-place mutation.
+	products := make([]*pb.Product, 0, 16)
 	for rows.Next() {
 		product := &pb.Product{}
 		product.PriceUsd = &pb.Money{}
@@ -159,8 +168,9 @@ func loadCatalogFromAlloyDB(catalog *pb.ListProductsResponse) error {
 		categories = strings.ToLower(categories)
 		product.Categories = strings.Split(categories, ",")
 
-		catalog.Products = append(catalog.Products, product)
+		products = append(products, product)
 	}
+	catalog.Products = products
 
 	log.Info("successfully parsed product catalog from AlloyDB")
 	return nil

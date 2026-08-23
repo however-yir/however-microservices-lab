@@ -72,12 +72,19 @@ func (p *productCatalog) SearchProducts(ctx context.Context, req *pb.SearchProdu
 }
 
 func (p *productCatalog) parseCatalog() []*pb.Product {
-	if reloadCatalog || len(p.catalog.Products) == 0 {
-		err := loadCatalog(&p.catalog)
-		if err != nil {
+	catalogMutex.RLock()
+	needLoad := reloadCatalog || len(p.catalog.Products) == 0
+	products := p.catalog.Products
+	catalogMutex.RUnlock()
+
+	if needLoad {
+		// loadCatalog takes the write lock and swaps in a fresh slice.
+		if err := loadCatalog(&p.catalog); err != nil {
 			return []*pb.Product{}
 		}
+		catalogMutex.RLock()
+		products = p.catalog.Products
+		catalogMutex.RUnlock()
 	}
-
-	return p.catalog.Products
+	return products
 }

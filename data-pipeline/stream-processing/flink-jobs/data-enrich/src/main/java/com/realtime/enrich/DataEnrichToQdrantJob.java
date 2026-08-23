@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -47,6 +46,7 @@ public class DataEnrichToQdrantJob {
         String groupId = params.get("group.id", "data-enrich-job");
         String sourceStartingOffsets = params.get("source.starting.offsets", "latest");
         String processedTopic = params.get("processed.topic", "rag_processed_chunks");
+        String dlqTopic = params.get("dlq.topic", "dlq_data_enrich");
         boolean enableProcessedTopicSink = params.getBoolean("enable.processed.topic.sink", true);
 
         String qdrantUrl = params.get("qdrant.url", "http://qdrant:6333");
@@ -78,11 +78,31 @@ public class DataEnrichToQdrantJob {
                 .setValueOnlyDeserializer(new SimpleStringSchema())
                 .build();
 
-        DataStream<ChunkRecord> chunkStream = env
+        DataStream<ParseResult> parsedStream = env
                 .fromSource(source, org.apache.flink.api.common.eventtime.WatermarkStrategy.noWatermarks(), "rag-doc-source")
-                .map(json -> DocumentEvent.fromJson(json, defaultSchemaVersion, defaultTenantId))
+                .map(json -> ParseResult.fromRaw(json, jobName, sourceTopic, defaultSchemaVersion, defaultTenantId))
+                .returns(ParseResult.class)
+                .name("parse-doc-events");
+
+        KafkaSink<String> dlqSink = KafkaSink.<String>builder()
+                .setBootstrapServers(kafkaBootstrapServers)
+                .setRecordSerializer(KafkaRecordSerializationSchema.builder()
+                        .setTopic(dlqTopic)
+                        .setValueSerializationSchema(new SimpleStringSchema())
+                        .build())
+                .build();
+
+        parsedStream
+                .filter(result -> !result.valid)
+                .map(ParseResult::toDlqJson)
+                .returns(String.class)
+                .sinkTo(dlqSink)
+                .name("dlq-sink");
+
+        DataStream<ChunkRecord> chunkStream = parsedStream
+                .filter(result -> result.valid)
+                .map(result -> result.event)
                 .returns(DocumentEvent.class)
-                .filter(Objects::nonNull)
                 .flatMap((DocumentEvent event, Collector<ChunkRecord> out) -> {
                     List<String> chunks = TextChunker.chunk(event.content, chunkSize, chunkOverlap);
                     for (int i = 0; i < chunks.size(); i++) {
@@ -358,6 +378,59 @@ public class DataEnrichToQdrantJob {
                 return Instant.parse(eventTime).toString();
             } catch (Exception ignored) {
                 return Instant.now().toString();
+            }
+        }
+    }
+
+    /** Wraps parsing so a poison message is routed to the DLQ instead of restarting the job. */
+    public static class ParseResult implements Serializable {
+        public boolean valid;
+        public String raw;
+        public String reason;
+        public DocumentEvent event;
+        public String jobName;
+        public String sourceTopic;
+        public String schemaVersion;
+
+        static ParseResult fromRaw(
+                String json,
+                String jobName,
+                String sourceTopic,
+                String defaultSchemaVersion,
+                String defaultTenantId) {
+            ParseResult result = new ParseResult();
+            result.raw = json == null ? "" : json;
+            result.jobName = jobName;
+            result.sourceTopic = sourceTopic;
+            result.schemaVersion = defaultSchemaVersion;
+
+            try {
+                result.event = DocumentEvent.fromJson(result.raw, defaultSchemaVersion, defaultTenantId);
+                result.valid = result.event != null;
+                if (!result.valid) {
+                    result.reason = "empty_or_missing_required_fields";
+                }
+            } catch (Exception exception) {
+                result.valid = false;
+                result.reason = exception.getMessage() == null ? "parse_exception" : exception.getMessage();
+            }
+            return result;
+        }
+
+        String toDlqJson() {
+            try {
+                ObjectNode node = MAPPER.createObjectNode();
+                node.put("record_type", "dlq");
+                node.put("job_name", jobName);
+                node.put("stage", "parse");
+                node.put("topic", sourceTopic == null ? "unknown" : sourceTopic);
+                node.put("schema_version", schemaVersion);
+                node.put("reason", reason == null ? "unknown" : reason);
+                node.put("raw", raw == null ? "" : raw);
+                node.put("event_time", Instant.now().toString());
+                return MAPPER.writeValueAsString(node);
+            } catch (Exception exception) {
+                return "{\"record_type\":\"dlq\",\"job_name\":\"" + jobName + "\",\"stage\":\"parse\",\"reason\":\"dlq_serialize_error\"}";
             }
         }
     }

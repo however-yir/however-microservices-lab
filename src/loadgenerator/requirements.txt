@@ -52,7 +52,7 @@ markupsafe==3.0.2
     #   flask
     #   jinja2
     #   werkzeug
-msgpack==1.1.1
+msgpack==1.2.1
     # via locust
 packaging==25.0
     # via pytest
@@ -64,11 +64,11 @@ pygments==2.20.0
     # via pytest
 pytest==9.0.3
     # via locust
-python-engineio==4.12.2
+python-engineio==4.13.2
     # via
     #   locust
     #   python-socketio
-python-socketio[client]==5.14.0
+python-socketio[client]==5.16.2
     # via locust
 pyzmq==27.1.0
     # via locust
@@ -78,7 +78,7 @@ requests==2.33.0
     #   python-socketio
 simple-websocket==1.1.0
     # via python-engineio
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   geventhttpclient
     #   requests

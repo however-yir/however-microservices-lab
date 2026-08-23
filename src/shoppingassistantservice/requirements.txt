@@ -4,7 +4,7 @@ aiofiles==24.1.0
     # via google-cloud-alloydb-connector
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.13.5
+aiohttp==3.14.3
     # via -r requirements.in
 aiosignal==1.4.0
     # via aiohttp
@@ -33,7 +33,7 @@ charset-normalizer==3.4.3
     # via requests
 click==8.3.0
     # via flask
-cryptography==46.0.7
+cryptography==50.0.0
     # via
     #   google-auth
     #   google-cloud-alloydb-connector
@@ -112,7 +112,7 @@ httpx==0.28.1
     #   google-genai
     #   langgraph-sdk
     #   langsmith
-idna==3.10
+idna==3.15
     # via
     #   anyio
     #   httpx
@@ -128,11 +128,11 @@ jinja2==3.1.6
     # via flask
 jsonpatch==1.33
     # via langchain-core
-jsonpointer==3.0.0
+jsonpointer==3.1.1
     # via jsonpatch
-langchain==1.2.4
+langchain==1.3.9
     # via -r requirements.in
-langchain-core==1.3.3
+langchain-core==1.6.0
     # via
     #   langchain
     #   langchain-google-genai
@@ -144,21 +144,21 @@ langchain-google-alloydb-pg==0.13.0
     # via -r requirements.in
 langchain-google-genai==4.2.2
     # via -r requirements.in
-langchain-postgres==0.0.16
+langchain-postgres==0.0.17
     # via langchain-google-alloydb-pg
-langchain-protocol==0.0.15
+langchain-protocol==0.0.18
     # via langchain-core
-langgraph==1.0.10rc1
+langgraph==1.2.11
     # via langchain
-langgraph-checkpoint==4.0.0
+langgraph-checkpoint==4.1.1
     # via
     #   langgraph
     #   langgraph-prebuilt
-langgraph-prebuilt==1.0.8
+langgraph-prebuilt==1.1.0
     # via langgraph
-langgraph-sdk==0.3.1
+langgraph-sdk==0.4.3
     # via langgraph
-langsmith==0.7.31
+langsmith==0.8.18
     # via langchain-core
 markupsafe==3.0.2
     # via
@@ -198,13 +198,13 @@ opentelemetry-sdk==1.36.0
     #   opentelemetry-exporter-otlp-proto-grpc
 opentelemetry-semantic-conventions==0.57b0
     # via opentelemetry-sdk
-orjson==3.11.6
+orjson==3.12.0
     # via
     #   langgraph-sdk
     #   langsmith
-ormsgpack==1.12.1
+ormsgpack==1.12.2
     # via langgraph-checkpoint
-packaging==25.0
+packaging==26.3
     # via
     #   langchain-core
     #   langsmith
@@ -213,7 +213,7 @@ pathspec==1.1.1
     # via mypy
 pgvector==0.3.6
     # via langchain-postgres
-pillow==12.2.0
+pillow==12.3.0
     # via -r requirements.in
 pluggy==1.6.0
     # via pytest
@@ -245,13 +245,13 @@ psycopg-binary==3.2.10
     # via psycopg
 psycopg-pool==3.2.6
     # via langchain-postgres
-pyasn1==0.6.3
+pyasn1==0.6.4
     # via pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.23
     # via cffi
-pydantic==2.12.5
+pydantic==2.13.4
     # via
     #   google-genai
     #   langchain
@@ -259,13 +259,13 @@ pydantic==2.12.5
     #   langchain-google-genai
     #   langgraph
     #   langsmith
-pydantic-core==2.41.5
+pydantic-core==2.46.4
     # via pydantic
 pygments==2.20.0
     # via pytest
 pytest==9.0.3
     # via -r requirements.in
-pyyaml==6.0.2
+pyyaml==6.0.3
     # via langchain-core
 requests==2.33.0
     # via
@@ -287,11 +287,11 @@ sniffio==1.3.1
     #   google-genai
 sqlalchemy[asyncio]==2.0.43
     # via langchain-postgres
-tenacity==9.1.2
+tenacity==9.1.4
     # via
     #   google-genai
     #   langchain-core
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   google-genai
     #   grpcio
@@ -307,11 +307,11 @@ typing-extensions==4.15.0
     #   pydantic-core
     #   sqlalchemy
     #   typing-inspection
-typing-inspection==0.4.2
+typing-inspection==0.4.4
     # via pydantic
-urllib3==2.6.3
+urllib3==2.7.0
     # via requests
-uuid-utils==0.12.0
+uuid-utils==0.17.0
     # via
     #   langchain-core
     #   langsmith
@@ -319,7 +319,7 @@ websockets==15.0.1
     # via google-genai
 werkzeug==3.1.6
     # via flask
-xxhash==3.6.0
+xxhash==4.0.1
     # via
     #   langgraph
     #   langsmith

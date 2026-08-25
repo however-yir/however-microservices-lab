@@ -3,7 +3,7 @@ name: "SemVer Tag Validation"
 on:
   push:
     tags:
-      - "*"
+      - "v*"
 
 jobs:
   validate-tag:

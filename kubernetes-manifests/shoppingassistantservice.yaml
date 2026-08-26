@@ -1,0 +1,141 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Default deployment for the AI shopping assistant. Uses the JSON catalog
+# fallback + Ollama so the service can come up without external AlloyDB or
+# Gemini credentials; production overlays (e.g.
+# kustomize/components/shopping-assistant) replace this with the full
+# AlloyDB/Gemini configuration.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shoppingassistantservice
+  labels:
+    app: shoppingassistantservice
+spec:
+  selector:
+    matchLabels:
+      app: shoppingassistantservice
+  template:
+    metadata:
+      labels:
+        app: shoppingassistantservice
+    spec:
+      serviceAccountName: shoppingassistantservice
+      terminationGracePeriodSeconds: 5
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: server
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          privileged: false
+          readOnlyRootFilesystem: false
+        image: shoppingassistantservice
+        ports:
+        - name: http
+          containerPort: 8080
+        env:
+        - name: MODEL_PROVIDER
+          value: "ollama"
+        - name: OLLAMA_BASE_URL
+          value: "http://ollama.ollama.svc.cluster.local:11434"
+        - name: OLLAMA_ALLOWED_HOSTS
+          value: "ollama,ollama.ollama.svc.cluster.local,localhost,127.0.0.1"
+        - name: OLLAMA_MODEL
+          value: "qwen2.5:7b"
+        - name: OLLAMA_TIMEOUT_SECONDS
+          value: "60"
+        - name: MAX_RETRIES
+          value: "2"
+        - name: RETRY_BACKOFF_SECONDS
+          value: "0.4"
+        - name: CIRCUIT_BREAKER_FAILURE_THRESHOLD
+          value: "4"
+        - name: CIRCUIT_BREAKER_RESET_SECONDS
+          value: "30"
+        - name: RATE_LIMIT_WINDOW_SECONDS
+          value: "60"
+        - name: RATE_LIMIT_MAX_REQUESTS
+          value: "120"
+        - name: ENABLE_TRACING
+          value: "0"
+        - name: VECTORSTORE_BACKEND
+          value: "json"
+        - name: VECTOR_TOP_K
+          value: "6"
+        - name: PRODUCT_CATALOG_JSON
+          value: "/shoppingassistantservice/products.local.json"
+        - name: PROMPT_TEMPLATE_DIR
+          value: "/shoppingassistantservice/prompts/v1"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        # /readyz returns 503 when MODEL_PROVIDER or VECTORSTORE_BACKEND
+        # don't match the configured values, so a partial config is detected
+        # before traffic is sent.
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 2
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /livez
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 2
+          failureThreshold: 6
+        # Give the service up to 100s to install model weights / warm caches
+        # before K8s starts counting readiness/liveness failures.
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          periodSeconds: 5
+          failureThreshold: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shoppingassistantservice
+  labels:
+    app: shoppingassistantservice
+spec:
+  type: ClusterIP
+  selector:
+    app: shoppingassistantservice
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: shoppingassistantservice

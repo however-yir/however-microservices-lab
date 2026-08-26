@@ -120,11 +120,27 @@ func main() {
 		port = os.Getenv("PORT")
 	}
 	log.Infof("starting grpc server at :%s", port)
-	run(port)
-	select {}
+	srv := run(port)
+	// Wait for SIGTERM/SIGINT so K8s rolling restarts can drain in-flight
+	// RPCs within terminationGracePeriodSeconds instead of being SIGKILL'd.
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+	sig := <-sigCh
+	log.Infof("received signal %s, shutting down gRPC server", sig)
+	// 5s grace for in-flight RPCs; K8s terminationGracePeriodSeconds is 5s.
+	done := make(chan struct{})
+	go func() {
+		srv.GracefulStop()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		srv.Stop()
+	}
 }
 
-func run(port string) string {
+func run(port string) *grpc.Server {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
 		log.Fatal(err)
@@ -149,7 +165,8 @@ func run(port string) string {
 	healthpb.RegisterHealthServer(srv, healthcheck)
 	go srv.Serve(listener)
 
-	return listener.Addr().String()
+	_ = listener.Addr().String()
+	return srv
 }
 
 func initStats() {

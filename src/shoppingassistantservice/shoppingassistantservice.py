@@ -10,6 +10,7 @@ import requests  # noqa: F401 - re-exported for existing tests and monkeypatches
 from flask import Flask, Response, g, request
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import ValidationError
+from waitress import serve
 
 from config import AppConfig, AssistantRequest, _build_config
 from metrics import RATE_LIMIT_REJECT_COUNTER, REQUEST_COUNTER, REQUEST_LATENCY
@@ -285,4 +286,7 @@ def create_app(config: AppConfig | None = None) -> Flask:
 if __name__ == "__main__":
     runtime_config = _build_config()
     app = create_app(runtime_config)
-    app.run(host="0.0.0.0", port=runtime_config.port)
+    # waitress handles SIGTERM/SIGINT and graceful drain out of the box, so a
+    # K8s rolling restart stops accepting new connections while finishing
+    # in-flight requests within the terminationGracePeriodSeconds window.
+    serve(app, host="0.0.0.0", port=runtime_config.port, ident="shoppingassistantservice")

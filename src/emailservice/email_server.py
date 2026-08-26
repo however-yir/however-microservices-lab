@@ -17,7 +17,9 @@
 from concurrent import futures
 import argparse
 import os
+import signal
 import sys
+import threading
 import time
 import grpc
 import traceback
@@ -58,53 +60,6 @@ class BaseEmailService(demo_pb2_grpc.EmailServiceServicer):
     return health_pb2.HealthCheckResponse(
       status=health_pb2.HealthCheckResponse.UNIMPLEMENTED)
 
-class EmailService(BaseEmailService):
-  def __init__(self):
-    raise Exception('cloud mail client not implemented')
-    super().__init__()
-
-  @staticmethod
-  def send_email(client, email_address, content):
-    response = client.send_message(
-      sender = client.sender_path(project_id, region, sender_id),
-      envelope_from_authority = '',
-      header_from_authority = '',
-      envelope_from_address = from_address,
-      simple_message = {
-        "from": {
-          "address_spec": from_address,
-        },
-        "to": [{
-          "address_spec": email_address
-        }],
-        "subject": "Your Confirmation Email",
-        "html_body": content
-      }
-    )
-    logger.info("Message sent: {}".format(response.rfc822_message_id))
-
-  def SendOrderConfirmation(self, request, context):
-    email = request.email
-    order = request.order
-
-    try:
-      confirmation = template.render(order = order)
-    except TemplateError as err:
-      context.set_details("An error occurred when preparing the confirmation mail.")
-      logger.error(err.message)
-      context.set_code(grpc.StatusCode.INTERNAL)
-      return demo_pb2.Empty()
-
-    try:
-      EmailService.send_email(self.client, email, confirmation)
-    except GoogleAPICallError as err:
-      context.set_details("An error occurred when sending the email.")
-      print(err.message)
-      context.set_code(grpc.StatusCode.INTERNAL)
-      return demo_pb2.Empty()
-
-    return demo_pb2.Empty()
-
 class DummyEmailService(BaseEmailService):
   def SendOrderConfirmation(self, request, context):
     logger.info('A request to send order confirmation email to {} has been received.'.format(request.email))
@@ -130,11 +85,27 @@ def start(dummy_mode):
   logger.info("listening on port: "+port)
   server.add_insecure_port('[::]:'+port)
   server.start()
-  try:
-    while True:
-      time.sleep(3600)
-  except KeyboardInterrupt:
-    server.stop(0)
+
+  # Block on a stop event instead of time.sleep(3600) so SIGTERM from a K8s
+  # rolling restart can stop the server and let in-flight RPCs finish
+  # within terminationGracePeriodSeconds.
+  stop_event = _make_stop_event()
+  stop_event.wait()
+  logger.info("shutdown signal received, stopping gRPC server")
+  # 5s grace for in-flight RPCs; K8s terminationGracePeriodSeconds is 5s.
+  server.stop(grace=5).wait()
+
+def _make_stop_event():
+  # signal handlers can only be installed from the main thread; if start()
+  # is invoked elsewhere (e.g. unit tests) fall back to a plain event.
+  if threading.current_thread() is threading.main_thread():
+    event = threading.Event()
+    def _handler(signum, frame):
+      event.set()
+    signal.signal(signal.SIGTERM, _handler)
+    signal.signal(signal.SIGINT, _handler)
+    return event
+  return threading.Event()
 
 def initStackdriverProfiling():
   project_id = None

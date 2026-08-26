@@ -246,3 +246,15 @@ def test_config_rejects_unknown_model_provider(
 
     with pytest.raises(ValueError, match="MODEL_PROVIDER"):
         appmod._build_config()
+
+
+def test_main_module_uses_waitess_for_graceful_shutdown():
+    """The service must run under waitress (not Flask dev server) so K8s
+    rolling restarts can drain in-flight requests within the
+    terminationGracePeriodSeconds window."""
+    import inspect
+    source = inspect.getsource(appmod)
+    assert "waitress.serve" in source or "from waitress import serve" in source
+    # Flask's threaded dev server is unsafe in production and does not
+    # handle SIGTERM/SIGINT gracefully; the prod entrypoint must not use it.
+    assert "app.run(" not in source

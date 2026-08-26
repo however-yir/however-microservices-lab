@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"cloud.google.com/go/profiler"
@@ -143,8 +145,29 @@ func main() {
 	healthcheck := health.NewServer()
 	healthpb.RegisterHealthServer(srv, healthcheck)
 	log.Infof("starting to listen on tcp: %q", lis.Addr().String())
-	err = srv.Serve(lis)
-	log.Fatal(err)
+
+	// Handle SIGTERM/SIGINT so K8s rolling restarts can drain in-flight RPCs
+	// within terminationGracePeriodSeconds instead of being SIGKILL'd.
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+	go func() {
+		sig := <-sigCh
+		log.Infof("received signal %s, shutting down gRPC server", sig)
+		done := make(chan struct{})
+		go func() {
+			srv.GracefulStop()
+			close(done)
+		}()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			srv.Stop()
+		}
+	}()
+
+	if err := srv.Serve(lis); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func initStats() {

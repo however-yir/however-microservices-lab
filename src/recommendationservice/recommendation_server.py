@@ -16,6 +16,8 @@
 
 import os
 import random
+import signal
+import threading
 import time
 import traceback
 from concurrent import futures
@@ -148,9 +150,14 @@ if __name__ == "__main__":
     server.add_insecure_port('[::]:'+port)
     server.start()
 
-    # keep alive
-    try:
-         while True:
-            time.sleep(10000)
-    except KeyboardInterrupt:
-            server.stop(0)
+    # Block on a stop event so SIGTERM from a K8s rolling restart stops the
+    # server and lets in-flight RPCs drain within terminationGracePeriodSeconds.
+    if threading.current_thread() is threading.main_thread():
+        stop_event = threading.Event()
+        def _handler(signum, frame):
+            stop_event.set()
+        signal.signal(signal.SIGTERM, _handler)
+        signal.signal(signal.SIGINT, _handler)
+        stop_event.wait()
+    # 5s grace for in-flight RPCs; K8s terminationGracePeriodSeconds is 5s.
+    server.stop(grace=5).wait()

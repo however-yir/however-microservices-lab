@@ -14,5 +14,5 @@ disallow_untyped_defs = false
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["requests"]
+module = ["requests", "waitress"]
 ignore_missing_imports = true

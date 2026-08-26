@@ -317,6 +317,8 @@ uuid-utils==0.17.0
     #   langsmith
 websockets==15.0.1
     # via google-genai
+waitress==3.0.2
+    # via -r requirements.in
 werkzeug==3.1.6
     # via flask
 xxhash==4.0.1

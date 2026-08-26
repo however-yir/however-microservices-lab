@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"cloud.google.com/go/profiler"
@@ -175,8 +177,35 @@ func main() {
 	handler = ensureSessionID(handler)                 // add session ID
 	handler = otelhttp.NewHandler(handler, "frontend") // add OTel tracing
 
+	httpSrv := &http.Server{
+		Addr:    addr + ":" + srvPort,
+		Handler: handler,
+	}
+
+	// Handle SIGTERM/SIGINT so K8s rolling restarts can drain in-flight HTTP
+	// requests and close the gRPC client connections cleanly, instead of
+	// being SIGKILL'd after terminationGracePeriodSeconds.
+	idleClosed := make(chan struct{})
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+		sig := <-sigCh
+		log.Infof("received signal %s, starting graceful shutdown", sig)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+		defer cancel()
+		if err := httpSrv.Shutdown(shutdownCtx); err != nil {
+			log.Errorf("http server shutdown error: %v", err)
+		}
+		closeGRPCConns(svc)
+		close(idleClosed)
+	}()
+
 	log.Infof("starting server on %s:%s", addr, srvPort)
-	log.Fatal(http.ListenAndServe(addr+":"+srvPort, handler))
+	if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
+	<-idleClosed
+	log.Info("server stopped")
 }
 func initStats(log logrus.FieldLogger) {
 	// TODO(arbrown) Implement OpenTelemtry stats
@@ -246,5 +275,30 @@ func mustConnGRPC(ctx context.Context, conn **grpc.ClientConn, addr string) {
 		grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
 	if err != nil {
 		panic(errors.Wrapf(err, "grpc: failed to connect %s", addr))
+	}
+}
+
+// closeGRPCConns releases the client-side gRPC connections held by the
+// frontend. Without this, K8s SIGKILL drops active streams and can leak
+// file descriptors during rolling restarts.
+func closeGRPCConns(svc *frontendServer) {
+	conns := []**grpc.ClientConn{
+		&svc.currencySvcConn,
+		&svc.productCatalogSvcConn,
+		&svc.cartSvcConn,
+		&svc.recommendationSvcConn,
+		&svc.shippingSvcConn,
+		&svc.checkoutSvcConn,
+		&svc.adSvcConn,
+	}
+	for _, ref := range conns {
+		if *ref != nil {
+			(*ref).Close()
+			*ref = nil
+		}
+	}
+	if svc.collectorConn != nil {
+		svc.collectorConn.Close()
+		svc.collectorConn = nil
 	}
 }
